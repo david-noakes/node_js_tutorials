@@ -2,3 +2,6 @@
  * from the command prompt, in the git directory demo1 run
  > npm install underscore --save
  
+2. if you add additional depencencies into package.json, then npm can install everthing that is missing:
+ * must be in the root directory of the repository package
+ > npm install
