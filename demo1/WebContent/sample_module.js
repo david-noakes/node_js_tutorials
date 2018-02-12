@@ -1,6 +1,10 @@
-exports.firstname = "ana";
-exports.lastname = "peronis";
+//exports.firstname = "ana";
+//exports.lastname = "peronis";
+//
+//exports.randomNum = function(){
+//	return Math.random();
+//}
 
-exports.randomNum = function(){
+module.exports = function(){
 	return Math.random();
 }
