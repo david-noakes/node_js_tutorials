@@ -1,0 +1,4 @@
+1. as part of creating app01_03, we need to install the underscore npm package:
+ * from the command prompt, in the git directory demo1 run
+ > npm install underscore --save
+ 
