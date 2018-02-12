@@ -1,1 +1,3 @@
 /demo1/.settings
+/create_package/node_modules/*
+node_modules
