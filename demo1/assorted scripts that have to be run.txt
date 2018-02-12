@@ -1,7 +1,24 @@
-1. as part of creating app01_03, we need to install the underscore npm package:
+1. create the original package.json
+  * you will be prompted for entries
+  >npm init
+  
+    package name: (create_package)
+	version: (1.0.0)
+	description: demo for creating package.json
+	entry point: (index.js)
+	test command:
+	git repository:
+	keywords:
+	author:
+	license: (ISC)
+	About to write to D:\Warehouse\git_clones\node_js_tutorials\create_package\package.json:
+  
+
+2. as part of creating app01_03, we need to install the underscore npm package:
  * from the command prompt, in the git directory demo1 run
  > npm install underscore --save
  
-2. if you add additional depencencies into package.json, then npm can install everthing that is missing:
+3. if you add additional depencencies into package.json, then npm can install everthing that is missing:
  * must be in the root directory of the repository package
  > npm install
+ 
