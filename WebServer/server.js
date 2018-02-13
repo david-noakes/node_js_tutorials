@@ -1,11 +1,14 @@
 /**
  * 0.0.01 - WebServer
  * 0.0.02 - process POST
+ * 0.0.03 - process events
  */
 var connect = require('connect');
 var port = 3456;
-var version = "0.0.02";
+var version = "0.0.03";
 var formidable = require('formidable');
+var http = require('http');
+var server = http.createServer();
 
 var webApp = connect()
     .use(function(req,res){
@@ -42,6 +45,18 @@ var webApp = connect()
     		res.end("Nothing else matched");
     	}
     });
+
+server.on('request',function(req,res){
+	console.log("Request received", req.headers);
+	res.end("Thanks, I got your request");
+});
+
+server.on('upgrade',function(req,socket,head){
+	console.log("upgrade the connection to a web socket connection ... ");
+});
+
 webApp.listen(port);
 
 console.log("webserver v" + version + " listening on port " + port);
+server.listen(3457);
+console.log("httpServer listening on port 3457");
