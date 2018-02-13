@@ -1,11 +1,15 @@
 {
   "name": "web_server_demo",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "basic http web server",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "david",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "connect": "*",
+    "body-parser": "*"
+  }
 }
