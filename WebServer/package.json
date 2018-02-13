@@ -1,6 +1,6 @@
 {
   "name": "webserver",
-  "version": "0.1.01",
+  "version": "0.1.02",
   "description": "tutorial web server",
   "main": "server.js",
   "scripts": {
@@ -11,6 +11,7 @@
   "dependencies": {
     "connect": "*",
     "body-parser": "*",
-    "request": "*"
+    "request": "*",
+    "formidable": "*"
   }
 }

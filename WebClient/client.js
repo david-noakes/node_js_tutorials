@@ -1,9 +1,15 @@
 /**
- * 0.0.01 Basic web client 
+ * 0.0.01 Basic web client GET
+ * 0.0.02 add in POST
  * 
  */
 var request = require('request');
 var fs = require('fs');
+
+var nameData = {
+	userFirstName: "Ana",
+	userLastName: "Peronis"
+}
 
 request("http://localhost:3456/hello", function(error,response,body){
 	if(error){
@@ -31,3 +37,6 @@ var callback = function(error,response,body){
 }
 
 request(options,callback);
+
+// post goes here
+request.post('http://localhost:3456').form(nameData);
