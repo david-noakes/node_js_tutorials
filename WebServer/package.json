@@ -9,11 +9,12 @@
   "author": "David",
   "license": "ISC",
   "dependencies": {
-    "connect": "*",
+    "aws-sdk": "^2.194.0",
     "body-parser": "*",
-    "request": "*",
+    "connect": "*",
     "formidable": "*",
-    "serve-static":"*",
-    "querystring": "^0.2.0"
+    "querystring": "^0.2.0",
+    "request": "*",
+    "serve-static": "*"
   }
 }
