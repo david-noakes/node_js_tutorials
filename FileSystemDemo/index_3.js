@@ -2,6 +2,7 @@
  * v0.0.3 - reading files
  */
 
+console.log("Reading Files")
 var fs = require('fs');
 
 var callBack1 = function(err,data){
