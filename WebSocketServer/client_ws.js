@@ -20,6 +20,6 @@ wsClient.on('open',function(){
 		//data.binary is set if data is binary
 		//otherwise it is utf8 encoded
 		//flags.masked is set if data was masked
-		console.log(flags);
+		console.log(flags);  // *** Note this is UNDEFINED
 	});
 });
