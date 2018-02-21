@@ -1,5 +1,6 @@
 /**
  * v0.0.1 WebSocket server
+ * v0.0.2 configuring a websocket client
  */
 console.log("Creating a WebSocket Server using the websocket API");
 
@@ -28,18 +29,18 @@ var isOriginAllowed = function(origin){
 
 wsServer.on('request',function(request){
 	if(!isOriginAllowed(request.origin)){
-		request.reject;
+		request.reject();
 		console.log("Request was rejected based on origin");
 		return;
 	}
 	
-	var connection = request.accept("",request.origin);
+	var connection = request.accept('demo-protocol',request.origin);
 	console.log("Request was accepted");
 	connection.on('message',function(message){
 		var messageType = message.type;
 		if(messageType === "utf8"){
 			console.log("UTF8 message received " + message.utf8Data);
-			connection.sendUTF("got the UTF8 message. Thanks");
+			connection.sendUTF("got the UTF8 message. Thanks [" + message.utf8Data + "]");
 		} else if(messageType === "binary") {
 			console.log("Binary message received. Length: " + message.binaryData.length);
 			connection.sendUTF("Got the binary message. Thanks. Sending it back");
