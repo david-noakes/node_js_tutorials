@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>My Socket Client Page</title>
+<script src="http://code.jquery.com/jquery-2.1.1.min.js" type="text/javascript"></script>
+<script src="/socket.io/socket.io.js" type="text/javascript"></script>
+</head>
+<body>
+<p> client page </p>
+<ul id="messageArea">
+<li>Messages</li>
+</ul>
+<form id="sendForm" action="">
+<input id="clientMessage" name="clientMessage" type="text" />
+<button>Send</button>
+</form>
+<script>
+   var socket = io();
+   socket.on("newConnection",function(data){
+	   console.log("New user connected");
+	   addMessage("A new user connected: " + data.id);
+   });
+   socket.on("clientDisconnected",function(data){
+	   console.log("User disconnected");
+	   addMessage("User disconnected " + data.id);
+   });
+   
+   $('#sendForm').submit(function(){
+	   var message = $('#clientMessage').val();
+	   console.log("Sending to server:" + message);
+	   socket.emit("chat",{message:message});
+   });
+   
+   socket.on('chat',function(data){
+	   addMessage(data.message);
+   });
+   function addMessage(message){
+	   $('#messageArea').append('<li>' + message + '</li>');
+   } 
+</script>
+</body>
+</html>
