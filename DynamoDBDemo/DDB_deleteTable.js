@@ -1,23 +1,18 @@
 /**
- * insert row in table
+ * create dynamoDB table
  */
 var AWS = require('aws-sdk');
 AWS.config.update({region:'ap-south-2', endpoint: new AWS.Endpoint('http://localhost:8000'),
 		accessKeyId:'accesskey', secretAccessKey:"dummy"});
 var params = {
-    TableName: "Wines",
-    Item:{
-	    "WineName": { S:"Chateau Neuf - Pinot Noir & Merlot"},
-	    "Vintage": { S:"1991"},
-	    "TastingNotes": { S: "Light, refreshing. Long finish, no heavy tanins. Floral notes, fruit notes"}
-    }
+      "TableName": "WinesXX"
 };
+
 var ddb = new AWS.DynamoDB();
-ddb.putItem(params, function(err, data){
-		if (err) {
+ddb.deleteTable(params, function(err, data){
+	if (err) {
 		console.log(JSON.stringify(err, null, 2));
 	} else {
 		console.log(JSON.stringify(data, null, 2));
 	}
-
-})
+});
