@@ -29,7 +29,7 @@ var params = {
         "ReadCapacityUnits": 10,
         "WriteCapacityUnits": 10
       },
-      "TableName": "WinesXX"
+      "TableName": "Wines"
 };
 
 var ddb = new AWS.DynamoDB();

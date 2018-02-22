@@ -5,21 +5,23 @@ var AWS = require('aws-sdk');
 AWS.config.update({region:'ap-south-2', endpoint: new AWS.Endpoint('http://localhost:8000'),
 		accessKeyId:'accesskey', secretAccessKey:"dummy"});
 var params = {
-	TableName: "Wines",
+	TableName: "Movies",
     Key: {
-        "WineName": { S: "Chateau Neuf - Pinot Noir & Merlot"},
-        "Vintage": { S: "1991"}
+        "year": 2013,
+        "title": "Gravity"
     }
 };
 
 function onGetItem(err,data){
 	if (err) {
-		console.log("Error\n" + JSON.stringify(err, null, 2));
+		console.log(JSON.stringify(err, null, 2));
 	} else {
-		console.log("Success\n" + JSON.stringify(data, null, 2));
+		console.log(JSON.stringify(data, null, 2));
 	}
 	
 }
 
 var ddb = new AWS.DynamoDB();
-ddb.getItem(params, onGetItem);
+//ddb.getItem(params, onGetItem);
+var docClient = new AWS.DynamoDB.DocumentClient();
+docClient.get(params, onGetItem);

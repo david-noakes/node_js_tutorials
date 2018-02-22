@@ -16,6 +16,7 @@ var params = {
         "WineName": { S: "Chateau Neuf - Pinot Noir & Merlot"},
         "Vintage": { S: "1991"}
     },
+    ReturnValues: "ALL_NEW", //  NONE | ALL_OLD | ALL_NEW | UPDATED_OLD | UPDATED_NEW
 	UpdateExpression: 'set #attrName = :attrValue',
 	ExpressionAttributeNames: {
 		"#attrName": "Description"
