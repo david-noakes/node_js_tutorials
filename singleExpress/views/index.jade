@@ -1,6 +1,7 @@
-doctype html
-html
-  head
-    title= my_simple_page_no_spaces_allowed
-  body
-   p Hi from our simple app  
+extends ./layout.jade
+block myHeadBlock
+	title Custom title for index overwrites the title from the layout
+	
+block myBodyBlock
+	h1 Welcome to the index page
+	p did you notice my page title	

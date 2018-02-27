@@ -13,6 +13,12 @@ app.set('view engine','jade');
 app.get('/',function(req, res){
 	res.render('index');
 });
+app.get('/pageA', function(req,res){
+	res.render('pageA',{firstName:'Ana',lastName:'Zaloumis'})
+});
+app.get('/public/TestPage', function(req,res){
+	res.render(__dirname + '/public/TestPage');
+});
 //app.get('/*',function(req, res){
 //	res.writeHead(404);
 //	res.end("Resource does not exist.")
