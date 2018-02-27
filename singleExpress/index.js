@@ -5,7 +5,7 @@ var express = require('express');
 var app = express();
 // using jade. We do not need to require it
 // note - jade has been superceded by pug
-//app.use(express.static(__dirname + '/public'));
+app.use(express.static(__dirname + '/public'));
 
 app.set('views',__dirname + '/views');
 app.set('view engine','jade');
