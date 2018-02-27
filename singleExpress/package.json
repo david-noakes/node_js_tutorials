@@ -9,6 +9,7 @@
   "author": "David",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.16.2"
+    "express": "^4.16.2",
+    "jade": "^1.7.0"
   }
 }
