@@ -2,3 +2,7 @@
 /create_package/node_modules/*
 node_modules
 .settings
+*.jshintrc
+*.sublime-project
+*.tern-project
+/FileSystemDemo/*.sublime-workspace
