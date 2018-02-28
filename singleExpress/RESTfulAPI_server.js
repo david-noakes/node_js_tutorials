@@ -10,7 +10,7 @@ AWS.config.update({region:'ap-south-2', endpoint: new AWS.Endpoint('http://local
 		accessKeyId:'accesskey', secretAccessKey:"dummy"});
 var ddb = new AWS.DynamoDB();
 var docClient = new AWS.DynamoDB.DocumentClient();
-var npm_dynamodb = require('dynamodb');
+//var npm_dynamodb = require('dynamodb');
 var npm_dynamodb_model = require('dynamodb-model');
 
 // model type 1 Joi does not exist - resolve later
@@ -75,5 +75,5 @@ app.use('/api',router);
 //--------------------------------------------------
 var port = 3456;
 app.listen(port,function(){
-	console.log("RESTful APIO online @" + port);
+	console.log("RESTful API online @" + port);
 });
