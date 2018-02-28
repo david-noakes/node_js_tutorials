@@ -21,7 +21,6 @@ var params2 = {
 		TableName: 'VerificationGroup'	
 };
 
-var ddb = new AWS.DynamoDB();
 ddb.describeTable(params2, function(err, data){
 	if (err) {
 		console.log(JSON.stringify(err, null, 2));		
@@ -34,8 +33,19 @@ var params3 = {
 		TableName: 'Wines'	
 };
 
-var ddb = new AWS.DynamoDB();
 ddb.describeTable(params3, function(err, data){
+	if (err) {
+		console.log(JSON.stringify(err, null, 2));		
+	} else {
+		console.log(JSON.stringify(data, null, 2));
+	}
+});
+
+var params4 = {
+		TableName: 'islands'	
+};
+
+ddb.describeTable(params4, function(err, data){
 	if (err) {
 		console.log(JSON.stringify(err, null, 2));		
 	} else {
