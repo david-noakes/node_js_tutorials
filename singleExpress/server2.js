@@ -1,6 +1,8 @@
 /**
  * Handling Errors with the Domain Module
  */
+// *** this example code does not work ***
+
 console.log("Handling Errors with the Domain Module");
 
 var cluster = require('cluster');
@@ -25,11 +27,31 @@ if (cluster.isMaster){
 		}
 	});
 } else {
-	var server = http.createServer(requestListener);
+//	var server = http.createServer(requestListener);
+	var server = http.createServer(function(req,res){
+		var domain = require('domain').create();
+		domain.on('error',function(error){
+			console.log("caught the error: " + error.code);
+			try {
+				var timeout = setTimeout(function(){
+					process.exit(1);
+				},10000);
+				timeout.unref();
+				server.close();
+				cluster.worker.disconnect();
+				res.statusCode = 500;
+				res.end("Something went wrong internally");
+			} catch (anotherError){
+				console.log("Error attempting to respond to domain error")
+			}
+		});
+	});
 	server.listen(port,function(){
-		console.log("slave http server online:" + process.pid);
+		console.log("slave http server online on port:" + port +" [pid:" + process.pid + "]");
 	});
 }
+
+//this creates a loop where new process is forked, process dies retrying
 
 function requestListener(req,res){
 	if(req.url == "/simulateError"){
@@ -39,8 +61,12 @@ function requestListener(req,res){
 	}
 }
 
-// this is needed to prevent a loop where new process is formed, process dies retrying
-process.on('uncaughtException',function(error){
-	console.log("Caught the exception:" + error.code);
-	process.exit();
-});
+//process.on('uncaughtException',function(error){
+//	console.log("Caught the exception:" + error.code);
+//	process.exit();
+//});
+
+
+
+
+
