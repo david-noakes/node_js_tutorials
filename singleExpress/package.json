@@ -12,6 +12,10 @@
     "express": "^4.16.2",
     "express-handlebars": "^1.1.0",
     "jade": "^1.7.0",
-    "underscore": "^1.7.0"
-  }
+    "underscore": "^1.7.0",
+    "aws-sdk": "*",
+    "body-parser": "*",
+    "dynamodb": "*",
+    "dynamodb-model": "*"
+   }
 }
