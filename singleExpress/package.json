@@ -16,6 +16,7 @@
     "aws-sdk": "*",
     "body-parser": "*",
     "dynamodb": "*",
-    "dynamodb-model": "*"
-   }
+    "dynamodb-model": "*",
+    "mongoose": "*"
+  }
 }
