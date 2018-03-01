@@ -43,29 +43,44 @@ var router = express.Router();
 router.route('/islands')
 .post(function(req,res){
 	// CREATE a new island document
+	console.log("POST /api/islands");
+	res.header("Content-Type",'application/json');
+//	res.header("Content-Type",'application/xml');
+//	res.header("Content-Type",'text/text');
+//	res.json("CREATE a new island document");
 	res.end("CREATE a new island document");
 })
 .get(function(req,res){
 	//RETRIEVE all island documents
+	console.log("GET /api/islands");
+	res.header("Content-Type",'application/json');
 	res.end("RETRIEVE all island documents");
 });
 
 router.route('/islands/:id')
 .post(function(req,res){
 	// CREATE/UPDATE a new island document by id
-	res.end("CREATE/UPDATE a new island document by id");
+	var id = req.params.id;
+	res.header("Content-Type",'application/json');
+	res.end("POST /api/islands/" + id + "   CREATE/UPDATE a new island document by id");
 })
 .get(function(req,res){
 	//RETRIEVE a single island document by id
-	res.end("RETRIEVE a single island document by id");
+	var id = req.params.id;
+	res.header("Content-Type",'application/json');
+	res.end("/GET /api/islands/" + id + "   RETRIEVE a single island document by id");
 })
 .put(function(req,res){
 	//UPDATE a single island document by id
-	res.end("UPDATE a single island document by id");
+	var id = req.params.id;
+	res.header("Content-Type",'application/json');
+	res.end("/PUT /api/islands/" + id + "   UPDATE a single island document by id");
 })
 .delete(function(req,res){
 	//DELETE a single island document by id
-	res.end("DELETE a single island document by id");
+	var id = req.params.id;
+	res.header("Content-Type",'application/json');
+	res.end("/POST /api/islands/" + id + "   DELETE a single island document by id");
 });
 
 
