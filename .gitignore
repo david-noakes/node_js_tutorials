@@ -6,3 +6,5 @@ node_modules
 *.sublime-project
 *.tern-project
 /FileSystemDemo/*.sublime-workspace
+angular
+libs
