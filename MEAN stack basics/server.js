@@ -163,10 +163,12 @@ router.route('/food/id')  // work with food documents using id
 });
 
 indexRouter.get("/*",function(req,res){
-	res.end("You will be getting back the angular single page app");
+	//res.end("You will be getting back the angular single page app");
+	res.sendFile(__dirname + '/public/index.html');
 })
 .post("/*",function(req,res){
-	res.end("You will be getting back the angular single page app");
+	//res.end("You will be getting back the angular single page app");
+	res.sendFile(__dirname + '/public/index.html');
 });
 
 //-----------------------------------------------
@@ -174,6 +176,8 @@ indexRouter.get("/*",function(req,res){
 app.use(logger('dev'));
 app.use(bodyParser({'extended':'true'}));
 app.use(bodyParser.json());
+
+app.use(express.static(__dirname + '/public'));
 app.use('/api',router);
 app.use('/',indexRouter);
 
