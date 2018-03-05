@@ -46,6 +46,8 @@ router.route('/foods')
 	var gramsProtein = req.body.gramsProtein;
 	var gramsFat = req.body.gramsFat;
 	
+	console.log("POST /foods: " + req.body);
+	
 	var food = new Food({
 		//_id:id,
 		name:name,
@@ -64,6 +66,8 @@ router.route('/foods')
 .get(function(req,res){
 	//return a list of food documents from collection
 	//res.end("return a list of food documents from collection");
+	console.log("GET /foods: " + req.body);
+	
 	Food.find({},function(err,foods){
 		if (err) { res.send({error:err});}
 		res.json(foods);
@@ -165,10 +169,10 @@ router.route('/food/id')  // work with food documents using id
 indexRouter.get("/*",function(req,res){
 	//res.end("You will be getting back the angular single page app");
 	res.sendFile(__dirname + '/public/index.html');
-})
-.post("/*",function(req,res){
-	//res.end("You will be getting back the angular single page app");
-	res.sendFile(__dirname + '/public/index.html');
+//})
+//.post("/*",function(req,res){
+//	//res.end("You will be getting back the angular single page app");
+//	res.sendFile(__dirname + '/public/index.html');
 });
 
 //-----------------------------------------------

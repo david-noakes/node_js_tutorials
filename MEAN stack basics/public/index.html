@@ -1,14 +1,125 @@
 <html>
-<head>
-    <title>My demo food app</title>
-    
-    <link rel="stylesheet" href="/libs/bootstrap/dist/css/bootstrap.min.css" />
-    <script type="text/javascript" src="libs/angular/angular.min.js"></script>
-    <script type="text/javascript" src="services/foodService.js"></script>
-</head>
-<body>
-<div>
-<h2>Welcome to the food app</h2>
-</div>
-</body>
+	<head>
+	    <title>My demo food app</title>
+	    
+	    <link rel="stylesheet" href="/libs/bootstrap/dist/css/bootstrap.min.css" />
+	    <script type="text/javascript" src="libs/angular/angular.min.js"></script>
+	    <script type="text/javascript" src="app.js"></script>
+	    <script type="text/javascript" src="controllers/mainController.js"></script>
+	    <script type="text/javascript" src="services/foodService.js"></script>
+	</head>
+	<body ng-app="foodApp" ng-controller="mainController">
+
+		<div class="jumbotron text-center container">
+
+        <div class="row">
+	        <div>
+	            <h2>Welcome to the food app</h2>
+	        </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12">
+                <button ng-click="showCreateForm=true"  class="btn btn-default">Add a new food</button>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12" id="createForm" ng-show="showCreateForm">
+                <form role="form" class="form-inline">
+                
+                    <div class="form-group">
+                        <label for="foodName">Name:</label>
+                        <input type="text" name="foodName" ng-model="newFood.name" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="servingSize">Serving Size:</label>
+                        <input type="text" name="servingSize" ng-model="newFood.servingSize" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="calories">Calories:</label>
+                        <input type="text" name="calories" ng-model="newFood.calories" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="gramsFat">Fat(g):</label>
+                        <input type="text" name="gramsFat" ng-model="newFood.gramsFat" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="gramsCarbs">Carbs(g):</label>
+                        <input type="text" name="gramsCarbs" ng-model="newFood.gramsCarbs" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="gramsProtein">Protein(g):</label>
+                        <input type="text" name="gramsProtein" ng-model="newFood.gramsProtein" class="form-control input-sm" />
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" value="Create" ng-click="createFood(newFood)" class="btn btn-default">Create</button>
+                    </div>                
+                </form>
+            </div>
+        </div>
+        
+        <div class="row">
+           <div class="col-md-12" id="detailsForm" ng-show="showDetailsForm">
+
+                <form role="form" class="form-inline">
+                
+                    <div class="form-group">
+                        <label for="foodName">Name:</label>
+                        <input type="text" name="foodName" ng-model="activefoodItem.name" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="servingSize">Serving Size:</label>
+                        <input type="text" name="servingSize" ng-model="activefoodItem.servingSize" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="calories">Calories:</label>
+                        <input type="text" name="calories" ng-model="activefoodItem.calories" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="gramsFat">Fat(g):</label>
+                        <input type="text" name="gramsFat" ng-model="activefoodItem.gramsFat" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="gramsCarbs">Carbs(g):</label>
+                        <input type="text" name="gramsCarbs" ng-model="activefoodItem.gramsCarbs" class="form-control input-sm" />
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="gramsProtein">Protein(g):</label>
+                        <input type="text" name="gramsProtein" ng-model="activefoodItem.gramsProtein" class="form-control input-sm" />
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" value="Update" ng-click="updateFood(activefoodItem)" class="btn btn-default">Update food</button>
+                    </div>                
+                    <div class="form-group">
+                        <button type="submit" value="Delete" ng-click="updateFood(activefoodItem)" class="btn btn-default">Delete food</button>
+                    </div>                
+                </form>
+            
+           </div>
+        </div>
+
+        <div id="food-list" class="row">
+
+            <div class="col-md-12">
+                <div ng-repeat="food in foods">
+                    <p ng-click="showDetails(food)">{{food.name}} </p>
+                </div>
+            </div>
+
+		</div>
+	</div>	
+	</body>
 </html>

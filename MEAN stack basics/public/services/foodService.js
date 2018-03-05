@@ -5,6 +5,7 @@
 angular.module('FoodService',[]).factory('Food',['$http','$q',function($http,$q){
 	
 	return {
+		
 		getAll:function(){
 			var deferred = $q.defer();
 			
