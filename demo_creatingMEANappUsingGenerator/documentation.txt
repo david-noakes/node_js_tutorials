@@ -1,0 +1,27 @@
+1. install node module called yo
+   >npm install -g yo
+       //installed globally
+2. install a generator generator-meanjs module       
+   >npm install -g generator-meanjs
+3. create project folder
+4. ensure python v3.x is installed
+5. install grunt - the javascript task runner
+   >npm install -g grunt-cli
+6. run the generator
+   >yo meanjs
+   //npm ERR! errno 1
+   //npm ERR! v8-debug@0.7.7 install: `node-pre-gyp install --fallback-to-build`
+7. the generated server can be started by using grunt
+   >grunt
+   //also failed:
+>>   Loading "grunt-karma.js" tasks...ERROR
+>> TypeError: Cannot read property 'prototype' of undefined
+>> Local Npm module "grunt-node-inspector" not found. Is it installed?
+ Warning:
+You need to have Ruby and Sass installed and in your PATH for this task to work.
+More info: https://github.com/gruntjs/grunt-contrib-sass
+    [nodemon] watching: server.js config/**/*.js modules/*/server/**/*.js
+    [nodemon] starting `node --debug server.js`
+    (node:15424) [DEP0062] DeprecationWarning: `node --debug` and `node --debug-brk` are invalid. Please use `node --inspect` or `node --inspect-brk` instead.
+    [nodemon] app crashed - waiting for file changes before starting...
+      
