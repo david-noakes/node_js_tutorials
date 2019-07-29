@@ -1,18 +1,18 @@
 const mockdb = require('../mockdb/mockdb');
 
 module.exports = class Product {
-    constructor(t) {
-        this.title = t;
-    }
+  constructor(title, imageUrl, description, price) {
+    this.title = title;
+    this.imageUrl = imageUrl;
+    this.description = description;
+    this.price = price;
+  }
 
     save() {
-        // products.push(this);
-        mockdb.addProduct(this);
+        mockdb.addDocument('products', this);
     }
 
     static fetchAll(cb) {
-        // return products;
-        // return mockdb.getProducts();
-        mockdb.getAllProducts(cb);
+        mockdb.getCollection('products', cb);
     }
 }
