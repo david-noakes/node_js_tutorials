@@ -2,10 +2,12 @@ const path = require('path');
 
 const express = require('express');
 const bodyParser = require('body-parser');
+const config = require('./util/config');
 
 const errorController = require('./controllers/error-controller');
 // const expressHandlebars = require('express-handlebars');
-const mockdb = require('./mockdb/mockdb');
+const mockdb = require('./jsonDB/mockdb');  // filedb
+const mysqldb = require('./util/database');
 
 const app = express();
 
@@ -25,7 +27,19 @@ app.set('views', 'views');
 const adminRoutes = require('./routes/admin-routes');
 const shopRoutes = require('./routes/shop-routes');
 
-mockdb.initDB();
+if (config.environment.dbType === config.environment.DB_FILEDB) {
+  mockdb.initDB();
+}
+
+if (config.environment.dbType === config.environment.DB_MYSQL) {
+  // mysqldb.execute('SELECT * FROM products')
+  // .then(result => {
+  //   console.log(result[0], result[1]);
+  // })
+  // .catch(err => {
+  //   console.log(err);
+  // });
+}
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -46,6 +60,7 @@ app.use((req, res, next) => {
   next();
 });
 
+//app.use('/admin', adminRoutes.routes);
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(errorController.get404);

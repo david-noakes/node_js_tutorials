@@ -1,4 +1,6 @@
-const mockdb = require('../mockdb/mockdb');
+const mockdb = require('../jsonDB/mockdb');
+const config = require('../util/config');
+
 const cartsTable = "carts";
 const loggedInUser = "a@b";
 
