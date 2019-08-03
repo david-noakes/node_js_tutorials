@@ -9,17 +9,27 @@ const productsUrl = config.environment.apiUrl + '/' + productTable;
 const uuidTools = require('../util/uuid-tools');
 
 module.exports = class Product {
-  constructor(id, title, imageUrl, description, price) {
+  constructor(id, title, imageUrl, description, price, createDate, modifyDate) {
     this.id = id;
     this.title = title;
     this.imageUrl = imageUrl;
     this.description = description;
     this.price = price;
+    if (createDate) {
+      this.createDate = createDate;
+    }
+    if (modifyDate) {
+      this.modifyDate = modifyDate;
+    }
   }
 
   create(callback) {
     if (config.environment.dbType === config.environment.DB_FILEDB) {
       mockdb.addDocument(productTable, this, callback);
+    } else if (config.environment.dbType === config.environment.DB_JSONDB) {
+      const key = uuidTools.generateId('aaaaaaaaaaaaaaaa');
+      this.id = key;
+      return axios.post(productsUrl, this);
     } else if (config.environment.dbType === config.environment.DB_MYSQL) {
       const key = uuidTools.generateId('aaaaaaaaaaaaaaaa');
       this.id = key;
@@ -28,7 +38,7 @@ module.exports = class Product {
         [this.id, this.title, this.price, this.imageUrl, this.description]
       );
     } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
-      return axios.post(productsUrl + '/add-product', this);
+      return axios.post(productsUrl, this);
     }
   }
 
@@ -42,8 +52,9 @@ module.exports = class Product {
           'WHERE  id =  ?',
         [this.title, this.price, this.imageUrl, this.description, this.id]
       );
-    } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
-      return axios.post(productsUrl + '/edit-product', {data: this});
+    } else if (config.environment.dbType === config.environment.DB_JSONDB ||
+        config.environment.dbType === config.environment.DB_MOCKDB) {
+      return axios.put(productsUrl + '/' + this.id, this);
     }
   }
 
@@ -52,7 +63,8 @@ module.exports = class Product {
       mockdb.getCollection(productTable, cb);
     } else if (config.environment.dbType === config.environment.DB_MYSQL) {
       return mysqldb.execute('SELECT * FROM products');
-    } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
+    } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
+       config.environment.dbType === config.environment.DB_JSONDB) {
       return axios.get(productsUrl);
     }
   }
@@ -63,7 +75,8 @@ module.exports = class Product {
       mockdb.getDocumentById(productTable, id, cb);
     } else if (config.environment.dbType === config.environment.DB_MYSQL) {
       return mysqldb.execute('SELECT * FROM products WHERE products.id = ?', [id]);
-    } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
+    } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
+        config.environment.dbType === config.environment.DB_JSONDB) {
       return axios.get(productsUrl + '/' + id);
     }
   }
@@ -74,12 +87,14 @@ module.exports = class Product {
       return mockdb.deleteDocument(productTable, id, cb);
     } else if (config.environment.dbType === config.environment.DB_MYSQL) {
       return mysqldb.execute('DELETE FROM products WHERE products.id = ?', [id]);
-    } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
-      return axios.delete(productsUrl + '/delete-product/' + id);
+    } else if (config.environment.dbType === config.environment.DB_JSONDB ||
+      config.environment.dbType === config.environment.DB_MOCKDB) {
+      return axios.delete(productsUrl + '/' + id);
     }
   }
 
   static deleteImage(imagePath) {
     mockdb.deleteImage(imagePath);
   }
+
 }

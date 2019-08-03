@@ -25,8 +25,18 @@ exports.postAddProduct = (req, res, next) => {
       res.redirect('/admin/add-product');
     }
   });
-  } else if (config.environment.dbType === config.environment.DB_MYSQL ||
-             config.environment.dbType === config.environment.DB_MOCKDB) {
+  } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
+      config.environment.dbType === config.environment.DB_JSONDB) {
+    product.create()
+    .then(result => {
+      console.log(result.status);
+      console.log(result.data);
+      res.redirect('/admin/add-product');
+      })
+    .catch(err => {
+      console.log(err);
+    });
+  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
     product.create()
       .then(result => {
         console.log(result);
@@ -92,6 +102,19 @@ exports.getEditProduct = (req, res, next) => {
         });
       })
       .catch(err => console.log(err));
+    } else if (config.environment.dbType === config.environment.DB_JSONDB) {
+      Product.findById(prodId)
+      .then((result) => {
+        console.log('result.data:', result.data);
+        const product = result.data;
+          res.render('admin/edit-product', {
+          pageTitle: 'Edit Product',
+          path: '/admin/edit-product',
+          editing: editMode,
+          product: product
+        });
+      })
+      .catch(err => console.log(err));
     } else {
       console.log('getEditProduct: request dbtype"' + config.environment.dbType + '" not supported');
     }
@@ -120,8 +143,20 @@ exports.getProducts = (req, res, next) => {
   } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
     Product.fetchAll()
     .then(result => {
+      console.log(result);
       res.render('admin/products', {
         prods: result.data.products,
+        pageTitle: 'Admin Products',
+        path: '/admin/products'
+      });
+    })
+    .catch(err => console.log(err));
+  } else if (config.environment.dbType === config.environment.DB_JSONDB) {
+    Product.fetchAll()
+    .then(result => {
+      console.log(result);
+      res.render('admin/products', {
+        prods: result.data,
         pageTitle: 'Admin Products',
         path: '/admin/products'
       });
@@ -172,6 +207,27 @@ exports.postDeleteProduct = (req, res, next) => {
         error: error
       });
     });
+  } else if (config.environment.dbType === config.environment.DB_JSONDB) {
+    Product.deleteById(prodId)
+    .then(result => {
+      // console.log(result.data);  empty
+      console.log(result.status);
+
+      // if (data.n > 0) {
+        // Product.deleteImage(product.id.imageToDelete);
+        // Cart.deleteProduct(data.id.id, data.id.price);
+        res.status(200).redirect("/admin/products");
+      // } else {
+      //   res.status(401).json({ message: "Not authorized!" });
+      // }
+    })
+    .catch(error => {
+      console.log('postDeleteProduct: error:', error);
+      res.status(500).json({
+        message: "Deleting product failed!",
+        error: error
+      });
+    });
   } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
     Product.deleteById(prodId)
     .then(result => {
@@ -192,7 +248,7 @@ exports.postDeleteProduct = (req, res, next) => {
         error: error
       });
     });
-  }
+    }
 };
 
 exports.postEditProduct = (req, res, next) => {
@@ -201,12 +257,14 @@ exports.postEditProduct = (req, res, next) => {
   const updatedPrice = req.body.price;
   const updatedImageUrl = req.body.imageUrl;
   const updatedDesc = req.body.description;
+  const createDate = req.body.productCreateDate;
   const updatedProduct = new Product(
     prodId,
     updatedTitle,
     updatedImageUrl,
     updatedDesc,
-    updatedPrice
+    updatedPrice,
+    createDate
   );
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     updatedProduct.update((result, err) => {
@@ -222,8 +280,9 @@ exports.postEditProduct = (req, res, next) => {
     }
   });
   } else if (config.environment.dbType === config.environment.DB_MYSQL ||
-    config.environment.dbType === config.environment.DB_MOCKDB) {
-    // console.log('admin-controller:updatedProduct:', updatedProduct);
+    config.environment.dbType === config.environment.DB_MOCKDB ||
+    config.environment.dbType === config.environment.DB_JSONDB) {
+    console.log('admin-controller:updatedProduct:', updatedProduct);
     updatedProduct.update()
       .then(result => {
         console.log(result);
@@ -250,173 +309,4 @@ exports.postEditProduct = (req, res, next) => {
         });
       });
   }
-};
-
-======================  shop-controller.js  =========================
-const Product = require('../models/product-model');
-const config = require('../util/config');
-const Cart = require('../models/cart-model');
-
-exports.getProducts = (req, res, next) => {
-  if (config.environment.dbType === config.environment.DB_FILEDB) {
-    Product.fetchAll(products => {
-      // console.log("prods:", products);
-      res.render('shop/product-list', {
-        prods: products,
-        pageTitle: 'All Products',
-        path: '/products'
-      });
-    });
-  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
-    Product.fetchAll()
-    .then(([rows, fieldData]) => {
-      res.render('shop/product-list', {
-        prods: rows,
-        pageTitle: 'All Products',
-        path: '/products'
-      });
-    })
-    .catch(err => console.log(err));
-  } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
-    Product.fetchAll()
-    .then(result => {
-      res.render('shop/product-list', {
-        prods: result.data.products,
-        pageTitle: 'All Products',
-        path: '/products'
-      });
-    })
-    .catch(err => console.log(err));
-  }
-};
-
-exports.getProduct = (req, res, next) => {
-  const prodId = req.params.productId;
-  if (config.environment.dbType === config.environment.DB_FILEDB) {
-  Product.findById(prodId, product => {
-    res.render('shop/product-detail', {
-      product: product,
-      pageTitle: product.title,
-      path: '/products'
-    });
-  });
-  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
-  Product.findById(prodId)
-    .then(([product]) => {
-      res.render('shop/product-detail', {
-        product: product[0],
-        pageTitle: product.title,
-        path: '/products'
-      });
-    })
-    .catch(err => console.log(err));
-  } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
-    Product.findById(prodId)
-    .then((result) => {
-      console.log(result.data);
-      const product = result.data;
-      res.render('shop/product-detail', {
-        product: product,
-        pageTitle: product.title,
-        path: '/products'
-      });
-    })
-    .catch(err => console.log(err));
-  }
-};
-
-exports.getIndex = (req, res, next) => {
-  if (config.environment.dbType === config.environment.DB_FILEDB) {
-    Product.fetchAll(products => {
-      res.render('shop/index', {
-        prods: products,
-        pageTitle: 'Shop',
-        path: '/'
-      });
-    });
-  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
-    Product.fetchAll()
-    .then(([rows, fieldData]) => {
-      res.render('shop/index', {
-        prods: rows,
-        pageTitle: 'Shop',
-        path: '/'
-      });
-    })
-    .catch(err => console.log(err));
-  } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
-    Product.fetchAll()
-    .then(result => {
-      // console.log(result);
-      res.render('shop/index', {
-        prods: result.data.products,
-        pageTitle: 'Shop',
-        path: '/'
-      });
-    })
-    .catch(err => console.log(err));
-  }
-};
-
-exports.getCart = (req, res, next) => {
-  Cart.getCart((cart, err1) => {
-    if (cart) {
-      Product.fetchAll((products, err2) => {
-        const cartProducts = [];
-        if (products) {
-          for (product of products) {
-            console.log('product:', product);
-            const cartProductData = cart.products.find(
-              prod => prod.id === product.id
-            );
-            if (cartProductData) {
-              console.log('product:', cartProductData, ' is in cart');
-              cartProducts.push({ productData: product, qty: cartProductData.qty });
-            }
-          }
-        }
-        // if nothing found, return the empty cartProducts
-        return res.render('shop/cart', {
-          path: '/cart',
-          pageTitle: 'Your Cart',
-          products: cartProducts
-        });
-      });
-    } else {
-      console.log(err1);
-      return (err1);
-    }
-  });
-};
-
-exports.postCart = (req, res, next) => {
-  const prodId = req.body.productId;
-  Product.findById(prodId, product => {
-    Cart.addProduct(prodId, product.price);
-  });
-  res.redirect('/cart');
-};
-
-exports.postCartDeleteProduct = (req, res, next) => {
-  console.log('postCartDeleteProduct', req.body.productId);
-  const prodId = req.body.productId;
-  Product.findById(prodId, product => {
-    console.log('found:', product);
-    Cart.deleteProduct(prodId, product.price);
-    res.redirect('/cart');
-  });
-};
-
-exports.getOrders = (req, res, next) => {
-  res.render('shop/orders', {
-    path: '/orders',
-    pageTitle: 'Your Orders'
-  });
-};
-
-exports.getCheckout = (req, res, next) => {
-  res.render('shop/checkout', {
-    path: '/checkout',
-    pageTitle: 'Checkout'
-  });
 };
