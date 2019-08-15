@@ -1,8 +1,16 @@
 const mockdb = require('../jsonDB/mockdb');
 const config = require('../util/config');
+const mysqldb = require('../util/database-mysql2');
+const config = require('../util/config');
+const axios = require('axios');
+const axiosUrl = config.environment.apiUrl;
 
 const cartsTable = "carts";
-const loggedInUser = "a@b";
+const cartsUrl = axiosUrl + '/' + cartsTable;
+const productTable = "products";
+const productsUrl = axiosUrl + '/' + productTable;
+
+const uuidTools = require('../util/uuid-tools');
 
 module.exports = class Cart {
   constructor(userId) {
@@ -12,20 +20,12 @@ module.exports = class Cart {
   }
     
 
-  static addProduct(id, productPrice) {
-    // Fetch the previous cart
-    let cart = mockdb.getCart(loggedInUser);
-    console.log('cart', cart);
-    if (!cart) {
-      cart = { userId: loggedInUser, products: [], totalPrice: 0 };
-      mockdb.addCart(cart);
-    }
-    
+  addProduct(id, productPrice) {
     // Analyze the cart => Find existing product
-    const existingProductIndex = cart.products.findIndex(
+    const existingProductIndex = products.findIndex(
       prod => prod.id === id
     );
-    const existingProduct = cart.products[existingProductIndex];
+    const existingProduct = products[existingProductIndex];
     let updatedProduct;
     // Add new product/ increase quantity
     if (existingProduct) {
@@ -49,18 +49,31 @@ module.exports = class Cart {
     // console.log(a1, a2, a3, a4, a5, a6);
 
     cart.totalPrice = a6;
-    mockdb.putCart(loggedInUser, cart, (result, error) => {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log(result);
-      }
-    });
+
+    if (config.environment.dbType === config.environment.DB_JSONDB ||
+      config.environment.dbType === config.environment.DB_MOCKDB) {
+      return axios.put(cartsUrl + '?id=' + userId, cart);
+    } else if (config.environment.dbType === config.environment.DB_MYSQL) {
+      return mysqldb.execute('SELECT * FROM carts WHERE carts.userId = ?', [userId]);
+    } else if (config.environment.dbType === config.environment.DB_FILEDB) {
+      mockdb.putCart(loggedInUser, cart, (result, error) => {
+        if (error) {
+          console.log(error);
+        } else {
+          console.log(result);
+        }
+      });
+    } else {
+    const eMsg = 'cart-model.addProduct:config.environment.dbType:' + config.environment.dbType + ' not supported';
+    console.log(eMsg);
+    return Promise.resolve({ error: eMsg});
+  }
 
   }
 
   static deleteProduct(id, productPrice) {
-    // Fetch the previous cart
+    if (config.environment.dbType === config.environment.DB_FILEDB) {
+      // Fetch the previous cart
     console.log('delete product from cart');
     let cart = mockdb.getCart(loggedInUser);
     console.log('cart', cart);
@@ -93,15 +106,39 @@ module.exports = class Cart {
         console.log(result);
       }
     });
+  } else {
+    const eMsg = 'cart-model.addProduct:config.environment.dbType:' + config.environment.dbType + ' not supported';
+    console.log(eMsg);
+    return Promise.resolve({ error: eMsg});
+  }
 }
 
-  static getCart(cb) {
-    let cart = mockdb.getCart(loggedInUser);
-    console.log('cart', cart);
-    if (!cart) {
-      cart = { userId: loggedInUser, products: [], totalPrice: 0 };
-      mockdb.addCart(cart);
+  static getCart(userId, cb) {
+    if (config.environment.dbType === config.environment.DB_JSONDB ||
+      config.environment.dbType === config.environment.DB_MOCKDB) {
+      return axios.get(cartsUrl + '?email=' + userId);
+    } else if (config.environment.dbType === config.environment.DB_MYSQL) {
+      return mysqldb.execute('SELECT * FROM carts WHERE carts.userId = ?', [userId]);
+    } else if (config.environment.dbType === config.environment.DB_FILEDB) {
+      let cart = mockdb.getCart(userId);
+      console.log('cart', cart);
+      if (!cart) {
+        cart = { userId: loggedInUser, products: [], totalPrice: 0 };
+        mockdb.addCart(cart);
+      }
+      if (cb) {
+        cb(cart, null);
+      } else {
+        return Promise.resolve(cart);
+      }
+    } else {
+      const eMsg = 'cart-model.getCart:config.environment.dbType:' + config.environment.dbType + ' not supported';
+      console.log(eMsg);
+      return Promise.resolve({ error: eMsg});
     }
-    cb(cart, null);
+  }
+
+  getProducts() {
+    return Promise.resolve(this.products);
   }
 };

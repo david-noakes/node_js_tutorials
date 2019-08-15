@@ -1,5 +1,5 @@
 const mockdb = require('../jsonDB/mockdb');
-const mysqldb = require('../util/database');
+const mysqldb = require('../util/database-mysql2');
 const config = require('../util/config');
 const axios = require('axios');
 const axiosUrl = config.environment.apiUrl;
@@ -9,12 +9,13 @@ const productsUrl = config.environment.apiUrl + '/' + productTable;
 const uuidTools = require('../util/uuid-tools');
 
 module.exports = class Product {
-  constructor(id, title, imageUrl, description, price, createDate, modifyDate) {
+  constructor(id, title, imageUrl, description, price, createDate, modifyDate, userId) {
     this.id = id;
     this.title = title;
     this.imageUrl = imageUrl;
     this.description = description;
     this.price = price;
+    this.userId = userId;
     if (createDate) {
       this.createDate = createDate;
     }
@@ -39,6 +40,10 @@ module.exports = class Product {
       );
     } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
       return axios.post(productsUrl, this);
+    } else {
+      const eMsg = 'product-model.create:config.environment.dbType:' + config.environment.dbType + ' not supported';
+      console.log(eMsg);
+      return Promise.resolve({ error: eMsg});
     }
   }
 
@@ -55,6 +60,10 @@ module.exports = class Product {
     } else if (config.environment.dbType === config.environment.DB_JSONDB ||
         config.environment.dbType === config.environment.DB_MOCKDB) {
       return axios.put(productsUrl + '/' + this.id, this);
+    } else {
+      const eMsg = 'product-model.update:config.environment.dbType:' + config.environment.dbType + ' not supported';
+      console.log(eMsg);
+      return Promise.resolve({ error: eMsg});
     }
   }
 
@@ -66,6 +75,10 @@ module.exports = class Product {
     } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
        config.environment.dbType === config.environment.DB_JSONDB) {
       return axios.get(productsUrl);
+    } else {
+      const eMsg = 'product-model.fetchAll:config.environment.dbType:' + config.environment.dbType + ' not supported';
+      console.log(eMsg);
+      return Promise.resolve({ error: eMsg});
     }
   }
 
@@ -78,6 +91,10 @@ module.exports = class Product {
     } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
         config.environment.dbType === config.environment.DB_JSONDB) {
       return axios.get(productsUrl + '/' + id);
+    } else {
+      const eMsg = 'product-model.findById:config.environment.dbType:' + config.environment.dbType + ' not supported';
+      console.log(eMsg);
+      return Promise.resolve({ error: eMsg});
     }
   }
 
@@ -90,6 +107,10 @@ module.exports = class Product {
     } else if (config.environment.dbType === config.environment.DB_JSONDB ||
       config.environment.dbType === config.environment.DB_MOCKDB) {
       return axios.delete(productsUrl + '/' + id);
+    } else {
+      const eMsg = 'product-model.deleteById:config.environment.dbType:' + config.environment.dbType + ' not supported';
+      console.log(eMsg);
+      return Promise.resolve({ error: eMsg});
     }
   }
 

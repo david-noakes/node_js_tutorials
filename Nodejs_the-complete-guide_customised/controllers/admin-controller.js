@@ -1,6 +1,19 @@
-const Product = require('../models/product-model');
-const Cart = require('../models/cart-model');
+let Cart;
+let Product;
+let User;
+
 const config = require('../util/config');
+if (config.environment.dbType === config.environment.DB_SQLZ) {
+  Cart = require('../models/cart-sqlize');
+  Product = require('../models/product-sqlize');
+  User = require('../models/user-sqlize');
+} else {
+  Cart = require('../models/cart-model');
+  Product = require('../models/product-model');
+  User = require('../models/user-model');
+}
+const uuidTools = require('../util/uuid-tools');
+
 
 exports.getAddProduct = (req, res, next) => {
   res.render('admin/edit-product', {
@@ -15,7 +28,10 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  const product = new Product(null, title, imageUrl, description, price);
+  const userId = req.user.id;
+  console.log('postAddProduct:', title, imageUrl, price, description, userId)
+  let product = new Product(null, title, imageUrl, description, price, userId);
+  console.log('req.user:', req.user);
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     product.create((result, err) => {
     if (err) {
@@ -45,8 +61,26 @@ exports.postAddProduct = (req, res, next) => {
       .catch(err => {
         console.log(err);
       });
-  } else {
-    product.create()
+  } else if (config.environment.dbType === config.environment.DB_SQLZ) {
+    const currentUser = req.user;
+    // console.log('req.user:', Object.keys(currentUser.__proto__));
+    req.user.createProduct({
+      // req.user.createProduct({
+        id: uuidTools.generateId('aaaaaaaaaaaaaaaa'),
+        title: title,
+        price: price,
+        imageUrl: imageUrl,
+        description: description
+        // userId: userId 
+      })
+    // Product.create({
+    //   id: uuidTools.generateId('aaaaaaaaaaaaaaaa'),
+    //   title: title,
+    //   price: price,
+    //   imageUrl: imageUrl,
+    //   description: description,
+    //   userId: userId  
+    // })
       .then(result => {
         console.log(result);
         res.redirect('/admin/add-product');
@@ -54,6 +88,8 @@ exports.postAddProduct = (req, res, next) => {
       .catch(err => {
         console.log(err);
       });
+    } else {
+      console.log('postAddProduct: request dbtype:"' + config.environment.dbType + '" not supported');
   }
   // res.redirect('/admin/add-product');
 };
@@ -89,7 +125,35 @@ exports.getEditProduct = (req, res, next) => {
         });
       })
       .catch(err => console.log(err));
-    } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
+    } else if (config.environment.dbType === config.environment.DB_SQLZ) {
+      // console.log('req.user:', Object.keys(req.user.__proto__));
+      req.user.getProducts({where: {id: prodId}})   // select only for the user as owner
+      // Product.findByPk(prodId)
+        // .then( product => {
+          .then( products => {
+            const product = products[0];
+            res.render('admin/edit-product', {
+            pageTitle: 'Edit Product',
+            path: '/admin/edit-product',
+            editing: editMode,
+            product: product
+          });
+        })
+        .catch(err => console.log(err));
+      } else if (config.environment.dbType === config.environment.DB_JSONDB) {
+        Product.findById(prodId)
+        .then((result) => {
+          console.log('result.data:', result.data);
+          const product = result.data;
+          res.render('admin/edit-product', {
+            pageTitle: 'Edit Product',
+            path: '/admin/edit-product',
+            editing: editMode,
+            product: product
+          });
+        })
+        .catch(err => console.log(err));
+        } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
       Product.findById(prodId)
       .then((result) => {
         console.log('result.data:', result.data);
@@ -102,21 +166,8 @@ exports.getEditProduct = (req, res, next) => {
         });
       })
       .catch(err => console.log(err));
-    } else if (config.environment.dbType === config.environment.DB_JSONDB) {
-      Product.findById(prodId)
-      .then((result) => {
-        console.log('result.data:', result.data);
-        const product = result.data;
-          res.render('admin/edit-product', {
-          pageTitle: 'Edit Product',
-          path: '/admin/edit-product',
-          editing: editMode,
-          product: product
-        });
-      })
-      .catch(err => console.log(err));
     } else {
-      console.log('getEditProduct: request dbtype"' + config.environment.dbType + '" not supported');
+      console.log('getEditProduct: request dbtype:"' + config.environment.dbType + '" not supported');
     }
 };
 
@@ -140,12 +191,13 @@ exports.getProducts = (req, res, next) => {
       });
     })
     .catch(err => console.log(err));
-  } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
-    Product.fetchAll()
+  } else if (config.environment.dbType === config.environment.DB_SQLZ) {
+    req.user.getProducts()   // select only for the user as owner
+    // Product.findAll()
     .then(result => {
       console.log(result);
       res.render('admin/products', {
-        prods: result.data.products,
+        prods: result,
         pageTitle: 'Admin Products',
         path: '/admin/products'
       });
@@ -162,7 +214,20 @@ exports.getProducts = (req, res, next) => {
       });
     })
     .catch(err => console.log(err));
-  }
+  } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
+    Product.fetchAll()
+    .then(result => {
+      console.log(result);
+      res.render('admin/products', {
+        prods: result.data.products,
+        pageTitle: 'Admin Products',
+        path: '/admin/products'
+      });
+    })
+    .catch(err => console.log(err));
+  } else {
+    console.log('getProducts: request dbtype:"' + config.environment.dbType + '" not supported');
+}
 };
 
 exports.postDeleteProduct = (req, res, next) => {
@@ -187,6 +252,25 @@ exports.postDeleteProduct = (req, res, next) => {
       }
     }
   });
+  } else if (config.environment.dbType === config.environment.DB_SQLZ) {
+    Product.findByPk(prodId)
+    .then(product => {
+      return product.destroy();
+    })
+    .then(result => {
+      // console.log(result);
+      console.log('DESTROYED PRODUCT');
+        // Product.deleteImage(product.id.imageToDelete);
+        // Cart.deleteProduct(data.id.id, data.id.price);
+        res.status(200).redirect("/admin/products");
+    })
+    .catch(error => {
+      console.log('postDeleteProduct: error:', error);
+      res.status(500).json({
+        message: "Deleting product failed!",
+        error: error
+      });
+    });
   } else if (config.environment.dbType === config.environment.DB_MYSQL) {
     Product.deleteById(prodId)
     .then(([result]) => {
@@ -248,7 +332,9 @@ exports.postDeleteProduct = (req, res, next) => {
         error: error
       });
     });
-    }
+  } else {
+    console.log('postDeleteProduct: request dbtype:"' + config.environment.dbType + '" not supported');
+  }
 };
 
 exports.postEditProduct = (req, res, next) => {
@@ -276,9 +362,30 @@ exports.postEditProduct = (req, res, next) => {
       });
     } else {
       console.log(result);
-      res.redirect('/admin/products');
+      res.status(200).redirect("/admin/products");
     }
   });
+  } else if (config.environment.dbType === config.environment.DB_SQLZ) {
+    console.log('admin-controller:updatedProduct:', updatedProduct);
+    Product.findByPk(prodId)
+    .then(product => {
+      product.title = updatedTitle;
+      product.price = updatedPrice;
+      product.description = updatedDesc;
+      product.imageUrl = updatedImageUrl;
+      return product.save();
+    })
+    .then(result => {
+      console.log('UPDATED PRODUCT!');
+      res.status(201).redirect("/admin/products");
+    })
+    .catch(error => {
+      console.log('postEditProduct: error:', error);
+      res.status(500).json({
+        message: "Saving product failed!",
+        error: error
+      });
+    });
   } else if (config.environment.dbType === config.environment.DB_MYSQL ||
     config.environment.dbType === config.environment.DB_MOCKDB ||
     config.environment.dbType === config.environment.DB_JSONDB) {
@@ -286,7 +393,7 @@ exports.postEditProduct = (req, res, next) => {
     updatedProduct.update()
       .then(result => {
         console.log(result);
-        res.redirect('/admin/products');
+        res.status(201).redirect("/admin/products");
       })
       .catch(error => {
         console.log('postEditProduct: error:', error);
@@ -295,18 +402,7 @@ exports.postEditProduct = (req, res, next) => {
           error: error
         });
       });
-  } else {
-    updatedProduct.update()
-      .then(result => {
-        console.log(result);
-        res.redirect('/admin/products');
-      })
-      .catch(error => {
-        console.log('postEditProduct: error:', error);
-        res.status(500).json({
-          message: "Saving product failed!",
-          error: error
-        });
-      });
+    } else {
+      console.log('posttEditProduct: request dbtype:"' + config.environment.dbType + '" not supported');
   }
 };

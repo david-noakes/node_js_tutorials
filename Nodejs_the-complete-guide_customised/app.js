@@ -3,11 +3,34 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const config = require('./util/config');
+const uuidTools = require('./util/uuid-tools');
+
 
 const errorController = require('./controllers/error-controller');
 // const expressHandlebars = require('express-handlebars');
-const mockdb = require('./jsonDB/mockdb');  // filedb
-const mysqldb = require('./util/database');
+const mockdb = require('./mockdb/mockdb');  // filedb
+const mysqldb = require('./util/database-mysql2');
+const sequelize = require('./util/database-sqlz');
+let Cart;
+let CartItem;
+let Order;
+let OrderItem;
+let Product;
+let User;
+if (config.environment.dbType === config.environment.DB_SQLZ) {
+  Cart = require('./models/cart-sqlize');
+  CartItem = require('./models/cart-item-sqlize');
+  Order = require('./models/order-sqlize');
+  OrderItem = require('./models/order-item-sqlize');
+  Product = require('./models/product-sqlize');
+  User = require('./models/user-sqlize');
+} else {
+  Cart = require('./models/cart-model');
+  Product = require('./models/product-model');
+  User = require('./models/user-model');
+}
+
+
 
 const app = express();
 
@@ -60,11 +83,86 @@ app.use((req, res, next) => {
   next();
 });
 
-//app.use('/admin', adminRoutes.routes);
+// get the logged in user
+app.use((req, res, next) => {
+  if (config.environment.dbType === config.environment.DB_SQLZ) {
+    User.findAll({where: { email: "ndj@shadowlands.erehwon" }})
+    .then(users => {
+      console.log('logged in user:', users[0]);
+      req.user = users[0];
+      next();
+    })
+    .catch(err => console.log(err));
+  } else {
+    User.getByEmail("ndj@shadowlands.erehwon")
+    .then(result => {
+      console.log('logged in user:', result.data[0]);
+      req.user = result.data[0];
+      next();
+    })
+    .catch(err => console.log(err));
+  }
+});
+
+//app.use('/admin', adminRoutes.routes);  
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(errorController.get404);
 
-
-app.listen(3000);
-console.log("simple server listening on port: 3000");
+if (config.environment.dbType === config.environment.DB_SQLZ) {
+  Product.belongsTo(User, { constraints: true, onDelete: 'CASCADE' });
+  User.hasMany(Product);
+  User.hasOne(Cart);
+  Cart.belongsTo(User);
+  Cart.belongsToMany(Product, { through: CartItem });
+  Product.belongsToMany(Cart, { through: CartItem });
+  Order.belongsTo(User);
+  User.hasMany(Order);
+  Order.belongsToMany(Product, { through: OrderItem });
+  
+  let newUser;
+  
+  sequelize
+  // .sync({ force: true })   // if you want to recreate all tables
+  .sync()
+  .then(result => {
+    return User.findAll({where: { email: "ndj@shadowlands.erehwon" }});
+  })
+  .then(users => {
+    // console.log('found user:', users);
+    if (!users || users.length === 0) {  // not found returns []
+      console.log('creating a user');
+      return User.create({ 
+        id: uuidTools.generateId('aaaaaaaaaaaaaaaa'), 
+        name: 'ndj', 
+        email: 'ndj@shadowlands.erehwon', 
+        password: '1@qW' 
+      });
+    }
+    // console.log('users[0]:', users[0]);
+    return users[0]; 
+  })
+  .then(user => {
+    newUser = user;
+    console.log('got user:', user);
+    return user.getCart();
+  })
+  .then(cart => {
+    console.log(cart);
+    if(!cart) {
+      return newUser.createCart({id: uuidTools.generateId('aaaaaaaaaaaaaaaa')});
+    } else {
+      return cart;
+    }
+  })
+  .then(cart => {
+    app.listen(3000);
+    console.log("simple server listening on port: 3000");  
+  })
+  .catch(err => {
+    console.log(err);
+  });
+} else {
+  app.listen(3000);
+  console.log("simple server listening on port: 3000");  
+}
