@@ -3,14 +3,15 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const config = require('./util/config');
-const uuidTools = require('./util/uuid-tools');
-
-
 const errorController = require('./controllers/error-controller');
+
 // const expressHandlebars = require('express-handlebars');
 const mockdb = require('./mockdb/mockdb');  // filedb
+const mongoConnect = require('./util/database-mongodb').mongoConnect;
 const mysqldb = require('./util/database-mysql2');
 const sequelize = require('./util/database-sqlz');
+const uuidTools = require('./util/uuid-tools');
+
 let Cart;
 let CartItem;
 let Order;
@@ -29,8 +30,6 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   Product = require('./models/product-model');
   User = require('./models/user-model');
 }
-
-
 
 const app = express();
 
@@ -71,6 +70,7 @@ app.use("/images", express.static(path.join("images")));
 
 
 app.use((req, res, next) => {
+  console.log('add CORS headers');
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Headers",
@@ -93,6 +93,21 @@ app.use((req, res, next) => {
       next();
     })
     .catch(err => console.log(err));
+  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
+    User.getByEmail('ndj@shadowlands.erehwon')
+    .then(user => {
+      // user.id = user._id;
+      req.user = User.factory(user);
+      console.log('mongodb: found user:', req.user);
+      next();
+    })
+    .catch(err => {
+      console.log(err);
+      console.log('mongodb: fake user');
+      const uu = new User('ndj@shadowlands.erehwon', '1qQ@', 'ndj', '4cddfd1dec7695560c98d329');
+      req.user = uu;
+      next();
+    });
   } else {
     User.getByEmail("ndj@shadowlands.erehwon")
     .then(result => {
@@ -100,7 +115,7 @@ app.use((req, res, next) => {
       req.user = result.data[0];
       next();
     })
-    .catch(err => console.log(err));
+    .catch(err => {console.log(err);   next();    });
   }
 });
 
@@ -157,10 +172,16 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   })
   .then(cart => {
     app.listen(3000);
-    console.log("simple server listening on port: 3000");  
+    console.log("mysql server listening on port: 3000");  
   })
   .catch(err => {
     console.log(err);
+  });
+} else if (config.environment.dbType === config.environment.DB_MONGODB) {
+  mongoConnect(() => {
+    console.log('connected to mongodb');
+    app.listen(3000);
+    console.log("mongodb server listening on port: 3000");  
   });
 } else {
   app.listen(3000);

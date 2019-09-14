@@ -1,5 +1,6 @@
 let Cart;
 let Cartitem;
+let Order;
 let Product;
 let User;
 
@@ -11,6 +12,7 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   User = require('../models/user-sqlize');
 } else {
   Cart = require('../models/cart-model');
+  Order = require('../models/order-model');
   Product = require('../models/product-model');
   User = require('../models/user-model');
 }
@@ -32,7 +34,8 @@ exports.getProducts = (req, res, next) => {
         path: '/products'
       });
     });
-  } else if (config.environment.dbType === config.environment.DB_JSONDB) {
+  } else if (config.environment.dbType === config.environment.DB_JSONDB ||
+             config.environment.dbType === config.environment.DB_MOCKDB)  {
     Product.fetchAll()
     .then(result => {
       res.render('shop/product-list', {
@@ -81,11 +84,11 @@ exports.getProducts = (req, res, next) => {
         error: error
       });
     });
-  } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
+  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
     Product.fetchAll()
     .then(result => {
       res.render('shop/product-list', {
-        prods: result.data.products,
+        prods: result,
         pageTitle: 'All Products',
         path: '/products'
       });
@@ -99,7 +102,7 @@ exports.getProducts = (req, res, next) => {
     });
   } else {
     console.log('getProducts: request dbtype:"' + config.environment.dbType + '" not supported');
-}
+  }
 };
 
 exports.getProduct = (req, res, next) => {
@@ -144,16 +147,22 @@ exports.getProduct = (req, res, next) => {
           error: error
         });
       });
-  
-      // Product.findAll({ where: { id: prodId } })
-      // .then(products => {
-      //   res.render('shop/product-detail', {
-      //     product: products[0],
-      //     pageTitle: products[0].title,
-      //     path: '/products'
-      //   });
-      // })
-      // .catch(err => console.log(err));
+    } else if (config.environment.dbType === config.environment.DB_MONGODB) {
+      Product.findById(prodId)
+      .then(product => {
+        res.render('shop/product-detail', {
+          product: product,
+          pageTitle: product.title,
+          path: '/products'
+        });
+      })
+      .catch(error => {
+        console.log('getProduct: error:', error);
+        res.status(500).json({
+          message: "getProduct failed!",
+          error: error
+        });
+      });
     } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
       config.environment.dbType === config.environment.DB_JSONDB) {
       Product.findById(prodId)
@@ -174,8 +183,8 @@ exports.getProduct = (req, res, next) => {
         });
       });
     } else {
-    console.log('getProduct: request dbtype:"' + config.environment.dbType + '" not supported');
-}
+      console.log('getProduct: request dbtype:"' + config.environment.dbType + '" not supported');
+    }
 };
 
 exports.getIndex = (req, res, next) => {
@@ -203,7 +212,8 @@ exports.getIndex = (req, res, next) => {
         error: error
       });
     });
-  } else if (config.environment.dbType === config.environment.DB_JSONDB) {
+  } else if (config.environment.dbType === config.environment.DB_JSONDB ||
+             config.environment.dbType === config.environment.DB_MOCKDB) {
     Product.fetchAll()
     .then(result => {
       // console.log(result.data);
@@ -237,12 +247,12 @@ exports.getIndex = (req, res, next) => {
         error: error
       });
     });
-  } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
+  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
     Product.fetchAll()
     .then(result => {
       // console.log(result);
       res.render('shop/index', {
-        prods: result.data.products,
+        prods: result,
         pageTitle: 'Shop',
         path: '/'
       });
@@ -260,11 +270,11 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
-if (config.environment.dbType === config.environment.DB_SQLZ) {
-  req.user
-    .getCart()
-    .then(cart => {
-     console.log('req.user:', Object.keys(cart.__proto__));
+  if (config.environment.dbType === config.environment.DB_SQLZ) {
+    req.user
+      .getCart()
+      .then(cart => {
+      console.log('req.user:', Object.keys(cart.__proto__));
       return cart
         .getProducts()
         .then(products => {
@@ -279,23 +289,32 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
     })
     .catch(err => console.log(err));
   } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
-    config.environment.dbType === config.environment.DB_JSONDB) {
-    User.getByEmail(req.user.email)
-    .then( user => { // nesting so we can reference the context variables
+    config.environment.dbType === config.environment.DB_JSONDB || 
+    config.environment.dbType === config.environment.DB_MONGODB) {
+      const user = User.factory(req.user);
       user.getCart()
       .then(cart => {
         Product.fetchAll()
         .then(products => {
           const cartProducts = [];
           if (products) {
-            for (product of products) {
-              console.log('product:', product);
-              const cartProductData = cart.products.find(
-                prod => prod.id === product.id
-              );
-              if (cartProductData) {
-                console.log('product:', cartProductData, ' is in cart');
-                cartProducts.push({ productData: product, qty: cartProductData.qty });
+            if (cart.products.length > 0) {
+              let cartProductData;
+              for (product of products) {
+                console.log('product:', product);
+                cartProductData = cart.products.find(p => {
+                  if (config.environment.dbType === config.environment.DB_MONGODB) {
+                    console.log(p.id+'' === product._id+'', p.id, product._id);
+                    return p.id+'' === product._id.toString();
+                  } else {
+                    // console.log(p.id+'' === product.id+'', p.id);
+                    return p.id='' === product.id.toString();
+                  }
+                });
+                if (cartProductData) {
+                  console.log('product:', cartProductData, ' is in cart');
+                  cartProducts.push({ productData: Product.factory(product), qty: cartProductData.qty });
+                }
               }
             }
             // if nothing found, return the empty cartProducts
@@ -306,8 +325,7 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
             });
           }  
         }) 
-      });
-    })  
+      })
     .catch(error => {
       console.log('getCart: error:', error);
       res.status(500).json({
@@ -360,23 +378,23 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
 
 exports.postCart = (req, res, next) => {
   if (config.environment.dbType === config.environment.DB_JSONDB ||
-    config.environment.dbType === config.environment.DB_MOCKDB ||
-    config.environment.dbType === config.environment.DB_MYSQL  ||
-    config.environment.dbType === config.environment.DB_FILEDB) {
-    const userId = req.user.userId; 
+      config.environment.dbType === config.environment.DB_MONGODB ||
+      config.environment.dbType === config.environment.DB_MOCKDB ||
+      config.environment.dbType === config.environment.DB_MYSQL  ||
+      config.environment.dbType === config.environment.DB_FILEDB) {
+    console.log('postCart:', req.user, 'product:', req.body);
     const prodId = req.body.productId;
-    let fetchedCart;  // if we chain .then() we need this set
-    User.findById(userId)
-    .then(user => {
-      user.getCart()
-      .then(cart => {
-        fetchedCart = cart;
-        Product.findById(prodId)
-        .then(product => {
-          cart.addProduct(prodId, product.price);
-          res.redirect('/cart');
-        })
-      })
+    // let fetchedCart;  // if we chain .then() we need this set
+    let fetchedUser = User.factory(req.user);
+    // console.log('fetchedUser:', fetchedUser);
+    return Product.findById(prodId)
+    .then(product => {
+      // console.log('shop-controller.postCart:with product:', product);
+      return fetchedUser.addToCart(product)
+      .then(result => {
+        // console.log('shop-controller.postCart:result', result);
+        res.redirect('/cart');
+      });
     })
     .catch(error => {
       console.log('postCart: error:', error);
@@ -426,19 +444,32 @@ exports.postCart = (req, res, next) => {
 
 exports.postCartDeleteProduct = (req, res, next) => {
   if (config.environment.dbType === config.environment.DB_JSONDB ||
+    config.environment.dbType === config.environment.DB_MONGODB ||
     config.environment.dbType === config.environment.DB_MOCKDB ||
     config.environment.dbType === config.environment.DB_MYSQL  ||
     config.environment.dbType === config.environment.DB_FILEDB) {
     console.log('postCartDeleteProduct', req.body.productId);
     console.log('postCartDeleteProduct', req.user);
     const prodId = req.body.productId;
-    const user = new User(req.user.email, 'password', req.user.name, req.user.id);
+    const user = User.factory(req.user);
     user.getCart()
     .then(cart => {
-      Product.findById(prodId, product => {
-        console.log('found:', product);
-        cart.deleteProduct(prodId, product.price);
-        res.redirect('/cart');
+      let realCart = Cart.factory(cart);
+      console.log('postCartDeleteProduct:realcart:', realCart);
+      Product.findById(prodId).then(product => {
+        console.log('postCartDeleteProduct:found:', product);
+        realCart.deleteProduct(prodId, product.price)
+        .then(result => {
+          console.log(result);
+          res.redirect('/cart');
+        })
+        .catch(error => {
+          console.log('postCartDeleteProduct: error:', error);
+          res.status(500).json({
+            message: "postCartDeleteProduct failed!",
+            error: error
+          });
+        });  
       });
     })
     .catch(error => {
@@ -478,29 +509,9 @@ exports.postCartDeleteProduct = (req, res, next) => {
 };
 
 exports.postOrder = (req, res, next) => {
-  let fetchedCart;
-  req.user
-    .getCart()
-    .then(cart => {
-      fetchedCart = cart;
-      return cart.getProducts();
-    })
-    .then(products => {
-      return req.user
-        .createOrder()
-        .then(order => {
-          return order.addProducts(
-            products.map(product => {
-              product.orderItem = { quantity: product.cartItem.quantity };
-              return product;
-            })
-          );
-        })
-        .catch(err => console.log(err));
-    })
-    .then(result => {
-      return fetchedCart.setProducts(null);
-    })
+  // let fetchedCart;
+  const realUser = User.factory(req.user);
+  return realUser.addOrder()
     .then(result => {
       res.redirect('/orders');
     })
@@ -508,13 +519,74 @@ exports.postOrder = (req, res, next) => {
 };
 
 exports.getOrders = (req, res, next) => {
-  req.user
-    .getOrders({include: ['products']})
+  const realUser = User.factory(req.user);
+  let realOrders;
+  realUser
+    .getOrders()     // {include: ['products']})
     .then(orders => {
+      console.log('getOrders:', orders);
+      if (orders.length <= 0) {
+        res.render('shop/orders', {
+          path: '/orders',
+          pageTitle: 'Your Orders',
+          orders: orders
+        });
+      }
+      // console.log('order.items:', orders[0].items);
+      realOrders = orders;
+      // return orders;
+      return Product.fetchAll();
+    })
+    .then(products => {
+        console.log('products:', products, 'realOrders:', realOrders, 'this.realOrders:', this.realOrders);
+        if (products) {
+          console.log('got products');
+          if (realOrders && realOrders.length > 0) {
+            console.log('got orders');
+            if (config.environment.dbType === config.environment.DB_MONGODB) {
+              for (order of realOrders) {
+                order.id = order._id.toString();
+              }  
+            }
+            let orderItemData; let idx;
+            for (product of products) {
+              console.log('product:', product);
+              for (order of realOrders) {
+                orderItemData = order.items.find(p => {
+                  if (config.environment.dbType === config.environment.DB_MONGODB) {
+                    console.log(p.id+'' === product._id+'', p.id);
+                    return p.id+'' === product._id.toString();
+                  } else {
+                    // console.log(p.id+'' === product.id+'', p.id);
+                    return p.id='' === product.id.toString();
+                  }
+                });
+                if (orderItemData) {
+                  orderItemData.title = product.title;
+                  orderItemData.price = product.price;
+                  idx = order.items.find(p => {
+                    if (config.environment.dbType === config.environment.DB_MONGODB) {
+                      return p.id+'' === product._id.toString();
+                    } else {
+                      return p.id='' === product.id.toString();
+                    }
+                  });
+                  order.items[idx] = orderItemData;
+                }
+              }
+            }
+          }
+          return realOrders;
+        }  
+        return realOrders;
+    })
+    .then(result => {
+      console.log('result:', result);
+      console.log('realOrders:', realOrders);
       res.render('shop/orders', {
         path: '/orders',
         pageTitle: 'Your Orders',
-        orders: orders
+        orders: realOrders
       });
     })
     .catch(err => console.log(err));

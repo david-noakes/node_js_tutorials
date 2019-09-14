@@ -1,4 +1,5 @@
 let Cart;
+const globals = require('../util/global-vars');
 let Product;
 let User;
 
@@ -14,8 +15,8 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
 }
 const uuidTools = require('../util/uuid-tools');
 
-
 exports.getAddProduct = (req, res, next) => {
+  console.log('sending admin/edit-product');
   res.render('admin/edit-product', {
     pageTitle: 'Add Product',
     path: '/admin/add-product',
@@ -24,13 +25,20 @@ exports.getAddProduct = (req, res, next) => {
 };
 
 exports.postAddProduct = (req, res, next) => {
+  console.log('req.body:', req.body, 'req.user:', req.user);
   const title = req.body.title;
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  const userId = req.user.id;
+  const createDate = globals.dateString();
+  const userId  = req.user.id;
+  let product;
+  if (config.environment.dbType === config.environment.DB_SQLZ) {
+    product = new Product(null, title, imageUrl, description, price, userId);
+  } else {
+    product = new Product(null, title, imageUrl, description, price, createDate, createDate, userId);
+  }
   console.log('postAddProduct:', title, imageUrl, price, description, userId)
-  let product = new Product(null, title, imageUrl, description, price, userId);
   console.log('req.user:', req.user);
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     product.create((result, err) => {
@@ -45,14 +53,27 @@ exports.postAddProduct = (req, res, next) => {
       config.environment.dbType === config.environment.DB_JSONDB) {
     product.create()
     .then(result => {
-      console.log(result.status);
-      console.log(result.data);
+      console.log('Created Product1:', result.status);
+      console.log('Created Product2:', result.data);
       res.redirect('/admin/add-product');
       })
     .catch(err => {
       console.log(err);
     });
-  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
+  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
+  product.create()
+  .then(result => {
+    console.log('Created Product:result.ops:', result.ops);
+    // result.ops: [ Product ]
+    console.log('Created Product:result.insertedCount:', result.insertedCount);
+    console.log('Created Product:result.result:', result.result);
+    // result.result: { n: 1, ok: 1 }
+    res.redirect('/admin/add-product');
+    })
+  .catch(err => {
+    console.log(err);
+  });
+} else if (config.environment.dbType === config.environment.DB_MYSQL) {
     product.create()
       .then(result => {
         console.log(result);
@@ -65,7 +86,6 @@ exports.postAddProduct = (req, res, next) => {
     const currentUser = req.user;
     // console.log('req.user:', Object.keys(currentUser.__proto__));
     req.user.createProduct({
-      // req.user.createProduct({
         id: uuidTools.generateId('aaaaaaaaaaaaaaaa'),
         title: title,
         price: price,
@@ -73,14 +93,6 @@ exports.postAddProduct = (req, res, next) => {
         description: description
         // userId: userId 
       })
-    // Product.create({
-    //   id: uuidTools.generateId('aaaaaaaaaaaaaaaa'),
-    //   title: title,
-    //   price: price,
-    //   imageUrl: imageUrl,
-    //   description: description,
-    //   userId: userId  
-    // })
       .then(result => {
         console.log(result);
         res.redirect('/admin/add-product');
@@ -91,7 +103,6 @@ exports.postAddProduct = (req, res, next) => {
     } else {
       console.log('postAddProduct: request dbtype:"' + config.environment.dbType + '" not supported');
   }
-  // res.redirect('/admin/add-product');
 };
 
 exports.getEditProduct = (req, res, next) => {
@@ -132,12 +143,15 @@ exports.getEditProduct = (req, res, next) => {
         // .then( product => {
           .then( products => {
             const product = products[0];
+            if (!product) {
+              return res.redirect('/');
+            }
             res.render('admin/edit-product', {
-            pageTitle: 'Edit Product',
-            path: '/admin/edit-product',
-            editing: editMode,
-            product: product
-          });
+              pageTitle: 'Edit Product',
+              path: '/admin/edit-product',
+              editing: editMode,
+              product: product
+            });
         })
         .catch(err => console.log(err));
       } else if (config.environment.dbType === config.environment.DB_JSONDB) {
@@ -145,6 +159,9 @@ exports.getEditProduct = (req, res, next) => {
         .then((result) => {
           console.log('result.data:', result.data);
           const product = result.data;
+          if (!product) {
+            return res.redirect('/');
+          }
           res.render('admin/edit-product', {
             pageTitle: 'Edit Product',
             path: '/admin/edit-product',
@@ -153,12 +170,31 @@ exports.getEditProduct = (req, res, next) => {
           });
         })
         .catch(err => console.log(err));
-        } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
+      } else if (config.environment.dbType === config.environment.DB_MONGODB) {
+        Product.findById(prodId)
+        .then((result) => {
+          console.log('result:', result);
+          const product = result;
+          if (!product) {
+            return res.redirect('/');
+          }
+          res.render('admin/edit-product', {
+            pageTitle: 'Edit Product',
+            path: '/admin/edit-product',
+            editing: editMode,
+            product: product
+          });
+        })
+        .catch(err => console.log(err));
+    } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
       Product.findById(prodId)
       .then((result) => {
         console.log('result.data:', result.data);
         const product = result.data.product;
-          res.render('admin/edit-product', {
+        if (!product) {
+          return res.redirect('/');
+        }
+        res.render('admin/edit-product', {
           pageTitle: 'Edit Product',
           path: '/admin/edit-product',
           editing: editMode,
@@ -213,7 +249,29 @@ exports.getProducts = (req, res, next) => {
         path: '/admin/products'
       });
     })
-    .catch(err => console.log(err));
+    .catch(error => {
+      console.log('getProducts: error:', error);
+      res.status(500).json({
+        message: "getProducts failed!",
+        error: error
+      });
+    });
+  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
+    Product.fetchAll()
+    .then(result => {
+      res.render('admin/products', {
+        prods: result,
+        pageTitle: 'Admin Products',
+        path: '/admin/products'
+      });
+    })
+    .catch(error => {
+      console.log('getProducts: error:', error);
+      res.status(500).json({
+        message: "getProducts failed!",
+        error: error
+      });
+    });
   } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
     Product.fetchAll()
     .then(result => {
@@ -224,15 +282,22 @@ exports.getProducts = (req, res, next) => {
         path: '/admin/products'
       });
     })
-    .catch(err => console.log(err));
+    .catch(error => {
+      console.log('getProducts: error:', error);
+      res.status(500).json({
+        message: "getProducts failed!",
+        error: error
+      });
+    });
   } else {
     console.log('getProducts: request dbtype:"' + config.environment.dbType + '" not supported');
-}
+  }
 };
 
 exports.postDeleteProduct = (req, res, next) => {
   console.log('postDeleteProduct', req.body);
   const prodId = req.body.productId;
+  const prodPrice = req.body.productPrice;
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.deleteById(prodId, (result, error) => {
     if (error) {
@@ -291,39 +356,23 @@ exports.postDeleteProduct = (req, res, next) => {
         error: error
       });
     });
-  } else if (config.environment.dbType === config.environment.DB_JSONDB) {
+  } else if (config.environment.dbType === config.environment.DB_JSONDB || 
+             config.environment.dbType === config.environment.DB_MOCKDB ||
+             config.environment.dbType === config.environment.DB_MONGODB) {
     Product.deleteById(prodId)
     .then(result => {
-      // console.log(result.data);  empty
-      console.log(result.status);
-
-      // if (data.n > 0) {
-        // Product.deleteImage(product.id.imageToDelete);
-        // Cart.deleteProduct(data.id.id, data.id.price);
-        res.status(200).redirect("/admin/products");
-      // } else {
-      //   res.status(401).json({ message: "Not authorized!" });
-      // }
+      return Cart.fetchAll();
     })
-    .catch(error => {
-      console.log('postDeleteProduct: error:', error);
-      res.status(500).json({
-        message: "Deleting product failed!",
-        error: error
-      });
-    });
-  } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
-    Product.deleteById(prodId)
-    .then(result => {
-      const data = result.data.result;
-
-      if (data.n > 0) {
-        // Product.deleteImage(product.id.imageToDelete);
-        // Cart.deleteProduct(data.id.id, data.id.price);
-        res.status(200).redirect("/admin/products");
-      } else {
-        res.status(401).json({ message: "Not authorized!" });
+    .then(fetchedCarts => {
+      let realCart = new Cart('');
+      if (fetchedCarts && fetchedCarts.length > 0) {
+        fetchedCarts.forEach(fCart => {
+          realCart = Cart.factory(fCart);
+          realCart.deleteProduct(prodId, prodPrice).then(xx => {return null})
+        });
       }
+      console.log('fetchCarts:', fetchedCarts);  
+      res.status(200).redirect("/admin/products");
     })
     .catch(error => {
       console.log('postDeleteProduct: error:', error);
@@ -388,7 +437,8 @@ exports.postEditProduct = (req, res, next) => {
     });
   } else if (config.environment.dbType === config.environment.DB_MYSQL ||
     config.environment.dbType === config.environment.DB_MOCKDB ||
-    config.environment.dbType === config.environment.DB_JSONDB) {
+    config.environment.dbType === config.environment.DB_JSONDB ||
+    config.environment.dbType === config.environment.DB_MONGODB) {
     console.log('admin-controller:updatedProduct:', updatedProduct);
     updatedProduct.update()
       .then(result => {

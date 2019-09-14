@@ -5,6 +5,7 @@ const DB_MONGODB = 'mongodb';
 const DB_MYSQL = 'mysql';
 const DB_SQLZ = 'mysql_slqz';
 
+// local mongo db server = http://localhost:27017
 
 
 module.exports.environment = {
@@ -14,9 +15,10 @@ module.exports.environment = {
   // apiUrl: 'http://localhost:3006/api',  // mongodb
   apiUrl: '',                          // filedb, mysql, mysql_sequelize
   // dbType: DB_JSONDB,  
-  // dbType: DB_MOCKDB,   
+  // dbType: DB_MOCKDB,  
+  dbType: DB_MONGODB, 
   // dbType: DB_MYSQL,   
-  dbType: DB_SQLZ,   
+  // dbType: DB_SQLZ,   
   // valid types 
   DB_FILEDB: DB_FILEDB,  // via mockdb local
   DB_JSONDB: DB_JSONDB,   // via http
