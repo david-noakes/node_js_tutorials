@@ -73,8 +73,8 @@ module.exports = class Cart {
         .collection(cartsTable)
         // .findOne({ userId: new mongodb.ObjectId(userId) });
         .findOne({
-          $or: [{userId: userId},
-                {userId: new mongodb.ObjectId(userId)}]
+          $or: [{userId: new mongodb.ObjectId(userId)},
+                {userId: userId}]
            });
     } else if (config.environment.dbType === config.environment.DB_MYSQL) {
       return mysqldb.execute('SELECT * FROM carts WHERE carts.userId = ?', [userId]);
@@ -161,7 +161,7 @@ module.exports = class Cart {
       console.log('cart.deleteProduct:id', id);
       const idx = this.products.findIndex(prod => prod.id.toString() === id.toString());
       if (idx < 0) {
-        return;
+        return Promise.resolve({ msg: 'nothing to delete'});
       }
       const product = this.products[idx];
       console.log(product);

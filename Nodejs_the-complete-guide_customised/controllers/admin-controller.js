@@ -8,6 +8,10 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   Cart = require('../models/cart-sqlize');
   Product = require('../models/product-sqlize');
   User = require('../models/user-sqlize');
+} else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+  Cart = require('../models/cart-mongoose');
+  Product = require('../models/product-mongoose');
+  User = require('../models/user-mongoose');
 } else {
   Cart = require('../models/cart-model');
   Product = require('../models/product-model');
@@ -35,6 +39,17 @@ exports.postAddProduct = (req, res, next) => {
   let product;
   if (config.environment.dbType === config.environment.DB_SQLZ) {
     product = new Product(null, title, imageUrl, description, price, userId);
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    product = new Product({
+      title: title,
+      price: price,
+      description: description,
+      imageUrl: imageUrl,
+      userId: req.user,
+      createDate: createDate,
+      modifyDate: createDate
+    });
+    console.log(product);
   } else {
     product = new Product(null, title, imageUrl, description, price, createDate, createDate, userId);
   }
@@ -61,19 +76,30 @@ exports.postAddProduct = (req, res, next) => {
       console.log(err);
     });
   } else if (config.environment.dbType === config.environment.DB_MONGODB) {
-  product.create()
-  .then(result => {
-    console.log('Created Product:result.ops:', result.ops);
-    // result.ops: [ Product ]
-    console.log('Created Product:result.insertedCount:', result.insertedCount);
-    console.log('Created Product:result.result:', result.result);
-    // result.result: { n: 1, ok: 1 }
-    res.redirect('/admin/add-product');
+    product.create()
+    .then(result => {
+      console.log('Created Product:result.ops:', result.ops);
+      // result.ops: [ Product ]
+      console.log('Created Product:result.insertedCount:', result.insertedCount);
+      console.log('Created Product:result.result:', result.result);
+      // result.result: { n: 1, ok: 1 }
+      res.redirect('/admin/add-product');
+      })
+    .catch(err => {
+      console.log(err);
+    });
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    product
+    .save()
+    .then(result => {
+      // console.log(result);
+      console.log('Created Product');
+      res.redirect('/admin/products');
     })
-  .catch(err => {
-    console.log(err);
-  });
-} else if (config.environment.dbType === config.environment.DB_MYSQL) {
+    .catch(err => {
+      console.log(err);
+    });
+  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
     product.create()
       .then(result => {
         console.log(result);
@@ -170,11 +196,14 @@ exports.getEditProduct = (req, res, next) => {
           });
         })
         .catch(err => console.log(err));
-      } else if (config.environment.dbType === config.environment.DB_MONGODB) {
+      } else if (config.environment.dbType === config.environment.DB_MONGODB ||
+                 config.environment.dbType === config.environment.DB_MONGOOSE) {
         Product.findById(prodId)
-        .then((result) => {
-          console.log('result:', result);
-          const product = result;
+        .then((product) => {
+          if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+            product.id = product._id;
+          }
+          console.log('result:', product);
           if (!product) {
             return res.redirect('/');
           }
@@ -208,6 +237,7 @@ exports.getEditProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
+  console.log('admin-controller.getProducts');
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.fetchAll(products => {
       // console.log("prods:", products);
@@ -272,6 +302,25 @@ exports.getProducts = (req, res, next) => {
         error: error
       });
     });
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    Product.find()
+    // .select('title price -_id')
+    .populate('userId', 'name')  // userId by itself will populate all fields from user
+    .then(products => {
+      return products.map(product => {
+        product.id = product._id;
+        return product;
+      })
+    })
+    .then(products => {
+      console.log(products);
+      res.render('admin/products', {
+        prods: products,
+        pageTitle: 'Admin Products',
+        path: '/admin/products'
+      });
+    })
+    .catch(err => console.log(err));
   } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
     Product.fetchAll()
     .then(result => {
@@ -356,6 +405,27 @@ exports.postDeleteProduct = (req, res, next) => {
         error: error
       });
     });
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    Product.findByIdAndRemove(prodId)
+    .then(result => {
+      return Cart.find();
+    })
+    .then(fetchedCarts => {
+      console.log(fetchedCarts);
+      if (fetchedCarts && fetchedCarts.length > 0) {
+        fetchedCarts.forEach(fCart => {
+          console.log('fCart:', fCart);
+          fCart.deleteProduct(prodId, prodPrice).then(xx => {return null})
+        });
+      }
+      console.log('fetchCarts:', fetchedCarts); 
+      return fetchedCarts; 
+    })
+    .then(() => {
+      console.log('DESTROYED PRODUCT');
+      res.status(200).redirect('/admin/products');
+    })
+    .catch(err => console.log(err));
   } else if (config.environment.dbType === config.environment.DB_JSONDB || 
              config.environment.dbType === config.environment.DB_MOCKDB ||
              config.environment.dbType === config.environment.DB_MONGODB) {
@@ -393,14 +463,21 @@ exports.postEditProduct = (req, res, next) => {
   const updatedImageUrl = req.body.imageUrl;
   const updatedDesc = req.body.description;
   const createDate = req.body.productCreateDate;
-  const updatedProduct = new Product(
-    prodId,
-    updatedTitle,
-    updatedImageUrl,
-    updatedDesc,
-    updatedPrice,
-    createDate
-  );
+  let updatedProduct;
+  if (config.environment.dbType === config.environment.DB_FILEDB || 
+      config.environment.dbType === config.environment.DB_MYSQL ||
+      config.environment.dbType === config.environment.DB_MOCKDB ||
+      config.environment.dbType === config.environment.DB_JSONDB ||
+      config.environment.dbType === config.environment.DB_MONGODB) {  
+    updatedProduct = new Product(
+      prodId,
+      updatedTitle,
+      updatedImageUrl,
+      updatedDesc,
+      updatedPrice,
+      createDate
+    );
+  }
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     updatedProduct.update((result, err) => {
     if (err) {
@@ -452,6 +529,21 @@ exports.postEditProduct = (req, res, next) => {
           error: error
         });
       });
+    } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+      Product.findById(prodId)
+        .then(product => {
+          product.title = updatedTitle;
+          product.price = updatedPrice;
+          product.description = updatedDesc;
+          product.imageUrl = updatedImageUrl;
+          product.modifyDate = globals.dateString();
+          return product.save();
+        })
+        .then(result => {
+          console.log('UPDATED PRODUCT!');
+          res.redirect('/admin/products');
+        })
+        .catch(err => console.log(err));    
     } else {
       console.log('posttEditProduct: request dbtype:"' + config.environment.dbType + '" not supported');
   }

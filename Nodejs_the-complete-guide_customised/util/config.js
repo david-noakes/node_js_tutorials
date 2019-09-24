@@ -2,6 +2,7 @@ const DB_FILEDB = 'filedb';  // via mockdb
 const DB_JSONDB = 'jsondb';   // via http
 const DB_MOCKDB = 'mockdb';  // via http
 const DB_MONGODB = 'mongodb';
+const DB_MONGOOSE = 'mongoose';
 const DB_MYSQL = 'mysql';
 const DB_SQLZ = 'mysql_slqz';
 
@@ -16,7 +17,8 @@ module.exports.environment = {
   apiUrl: '',                          // filedb, mysql, mysql_sequelize
   // dbType: DB_JSONDB,  
   // dbType: DB_MOCKDB,  
-  dbType: DB_MONGODB, 
+  // dbType: DB_MONGODB, 
+  dbType: DB_MONGOOSE,
   // dbType: DB_MYSQL,   
   // dbType: DB_SQLZ,   
   // valid types 
@@ -24,6 +26,7 @@ module.exports.environment = {
   DB_JSONDB: DB_JSONDB,   // via http
   DB_MOCKDB: DB_MOCKDB,  // via http
   DB_MONGODB: DB_MONGODB, 
+  DB_MONGOOSE: DB_MONGOOSE,
   DB_MYSQL: DB_MYSQL, // WITHOUT SEQELIZE
   DB_SQLZ: DB_SQLZ,
 };

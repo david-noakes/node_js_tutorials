@@ -1,13 +1,18 @@
+const bodyParser = require('body-parser');
+const express = require('express');
 const path = require('path');
 
-const express = require('express');
-const bodyParser = require('body-parser');
 const config = require('./util/config');
 const errorController = require('./controllers/error-controller');
+const globalVars = require('./util/global-vars');
 
 // const expressHandlebars = require('express-handlebars');
 const mockdb = require('./mockdb/mockdb');  // filedb
-const mongoConnect = require('./util/database-mongodb').mongoConnect;
+let mongoConnect;
+if (config.environment.dbType === config.environment.DB_MONGODB) {
+  mongoConnect = require('./util/database-mongodb').mongoConnect;
+}  
+const mongoose = require('mongoose');
 const mysqldb = require('./util/database-mysql2');
 const sequelize = require('./util/database-sqlz');
 const uuidTools = require('./util/uuid-tools');
@@ -25,8 +30,14 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   OrderItem = require('./models/order-item-sqlize');
   Product = require('./models/product-sqlize');
   User = require('./models/user-sqlize');
+} else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+  Cart = require('./models/cart-mongoose');
+  Order = require('./models/order-mongoose');
+  Product = require('./models/product-mongoose');
+  User = require('./models/user-mongoose');
 } else {
   Cart = require('./models/cart-model');
+  Order = require('./models/order-model');
   Product = require('./models/product-model');
   User = require('./models/user-model');
 }
@@ -108,6 +119,23 @@ app.use((req, res, next) => {
       req.user = uu;
       next();
     });
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    console.log('getUserByEmail:')
+    User.findOne({email: 'ndj@shadowlands.erehwon'}).then(user => {
+      console.log('findUser:', user);
+      if (!user) {
+        const user = new User({
+          name: 'ndj',
+          email: 'ndj@shadowlands.erehwon',
+          password: '1qQ@',
+          id: '4cddfd1dec7695560c98d329',
+          _id: Schema.Types.ObjectId('4cddfd1dec7695560c98d329')
+        });
+        user.save();
+      }
+      req.user = user;
+      next();
+    });
   } else {
     User.getByEmail("ndj@shadowlands.erehwon")
     .then(result => {
@@ -182,6 +210,16 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
     console.log('connected to mongodb');
     app.listen(3000);
     console.log("mongodb server listening on port: 3000");  
+  });
+} else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+  mongoose
+  .connect(globalVars.MONGO_Config.MONGO_LOCAL_NODEJS_COURSE_DB, { useNewUrlParser: true })
+  .then(result => {
+    app.listen(3000);
+    console.log("mongoose server listening on port: 3000");  
+  })
+  .catch(err => {
+    console.log(err);
   });
 } else {
   app.listen(3000);

@@ -10,6 +10,10 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   CartItem = require('../models/cart-item-sqlize');
   Product = require('../models/product-sqlize');
   User = require('../models/user-sqlize');
+} else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+  Cart = require('../models/cart-mongoose');
+  Product = require('../models/product-mongoose');
+  User = require('../models/user-mongoose');
 } else {
   Cart = require('../models/cart-model');
   Order = require('../models/order-model');
@@ -17,12 +21,6 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   User = require('../models/user-model');
 }
 const uuidTools = require('../util/uuid-tools');
-
-if (config.environment.dbType === config.environment.DB_SQLZ) {
-  Product = require('../models/product-sqlize');
-} else {
-  Product = require('../models/product-model');
-}
 
 exports.getProducts = (req, res, next) => {
   if (config.environment.dbType === config.environment.DB_FILEDB) {
@@ -40,6 +38,44 @@ exports.getProducts = (req, res, next) => {
     .then(result => {
       res.render('shop/product-list', {
         prods: result.data,
+        pageTitle: 'All Products',
+        path: '/products'
+      });
+    })
+    .catch(error => {
+      console.log('getProducts: error:', error);
+      res.status(500).json({
+        message: "getProducts failed!",
+        error: error
+      });
+    });
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    Product.find()
+    .then(products => {
+      return products.map(product => {
+        product.id = product._id;
+        return product;
+      })
+    })
+    .then(products => {
+      res.render('shop/product-list', {
+        prods: products,
+        pageTitle: 'All Products',
+        path: '/products'
+      });
+    })
+    .catch(error => {
+      console.log('getProducts: error:', error);
+      res.status(500).json({
+        message: "getProducts failed!",
+        error: error
+      });
+    });
+  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
+    Product.fetchAll()
+    .then(result => {
+      res.render('shop/product-list', {
+        prods: result,
         pageTitle: 'All Products',
         path: '/products'
       });
@@ -71,22 +107,6 @@ exports.getProducts = (req, res, next) => {
     Product.findAll()
     .then(result => {
       console.log(result)
-      res.render('shop/product-list', {
-        prods: result,
-        pageTitle: 'All Products',
-        path: '/products'
-      });
-    })
-    .catch(error => {
-      console.log('getProducts: error:', error);
-      res.status(500).json({
-        message: "getProducts failed!",
-        error: error
-      });
-    });
-  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
-    Product.fetchAll()
-    .then(result => {
       res.render('shop/product-list', {
         prods: result,
         pageTitle: 'All Products',
@@ -147,9 +167,13 @@ exports.getProduct = (req, res, next) => {
           error: error
         });
       });
-    } else if (config.environment.dbType === config.environment.DB_MONGODB) {
+    } else if (config.environment.dbType === config.environment.DB_MONGODB ||
+               config.environment.dbType === config.environment.DB_MONGOOSE) {
       Product.findById(prodId)
       .then(product => {
+        if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+          product.id = product._id;
+        }
         res.render('shop/product-detail', {
           product: product,
           pageTitle: product.title,
@@ -196,11 +220,35 @@ exports.getIndex = (req, res, next) => {
         path: '/'
       });
     });
-  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
+  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
     Product.fetchAll()
-    .then(([rows, fieldData]) => {
+    .then(result => {
+      // console.log(result);
       res.render('shop/index', {
-        prods: rows,
+        prods: result,
+        pageTitle: 'Shop',
+        path: '/'
+      });
+    })
+    .catch(error => {
+      console.log('getIndex: error:', error);
+      res.status(500).json({
+        message: "getIndex failed!",
+        error: error
+      });
+    });
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    Product.find()
+    .then(products => {
+      return products.map(product => {
+        product.id = product._id;
+        return product;
+      })
+    })
+    .then(result => {
+      // console.log(result);
+      res.render('shop/index', {
+        prods: result,
         pageTitle: 'Shop',
         path: '/'
       });
@@ -230,12 +278,11 @@ exports.getIndex = (req, res, next) => {
         error: error
       });
     });
-  } else if (config.environment.dbType === config.environment.DB_SQLZ) {
-    Product.findAll()
-    .then(result => {
-      // console.log(result);
+  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
+    Product.fetchAll()
+    .then(([rows, fieldData]) => {
       res.render('shop/index', {
-        prods: result,
+        prods: rows,
         pageTitle: 'Shop',
         path: '/'
       });
@@ -247,8 +294,8 @@ exports.getIndex = (req, res, next) => {
         error: error
       });
     });
-  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
-    Product.fetchAll()
+  } else if (config.environment.dbType === config.environment.DB_SQLZ) {
+    Product.findAll()
     .then(result => {
       // console.log(result);
       res.render('shop/index', {
@@ -288,6 +335,37 @@ exports.getCart = (req, res, next) => {
         .catch(err => console.log(err));
     })
     .catch(err => console.log(err));
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    const user = new User(req.user);
+    user.getCart()
+    .then(cart => {
+      cart.populate('products.id')
+      .execPopulate()  // this returns the promise that can go to the then
+      .then( pCart => {
+        console.log('cart.getCart:populate', pCart.products);
+        const cartProducts = [];
+        if (pCart.products && pCart.products.length > 0) {
+          for (product of pCart.products) {
+            product.id.id = product.id._id;
+            console.log('product:', product, product.id);
+            cartProducts.push({ productData: product.id, qty: product.qty });
+          }
+        }
+        return res.render('shop/cart', {
+          path: '/cart',
+          pageTitle: 'Your Cart',
+          products: cartProducts
+        });
+      })
+    })
+    .catch(error => {
+      console.log('getCart: error:', error);
+      res.status(500).json({
+        message: "getCart failed!",
+        error: error
+      });
+    });
+
   } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
     config.environment.dbType === config.environment.DB_JSONDB || 
     config.environment.dbType === config.environment.DB_MONGODB) {
@@ -304,7 +382,7 @@ exports.getCart = (req, res, next) => {
                 console.log('product:', product);
                 cartProductData = cart.products.find(p => {
                   if (config.environment.dbType === config.environment.DB_MONGODB) {
-                    console.log(p.id+'' === product._id+'', p.id, product._id);
+                    // console.log(p.id+'' === product._id+'', p.id);
                     return p.id+'' === product._id.toString();
                   } else {
                     // console.log(p.id+'' === product.id+'', p.id);
@@ -403,6 +481,28 @@ exports.postCart = (req, res, next) => {
         error: error
       });
     });
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    console.log('postCart:', req.user, 'product:', req.body);
+    const prodId = req.body.productId;
+    // let fetchedCart;  // if we chain .then() we need this set
+    const fetchedUser = new User(req.user);
+    console.log('shop-controller.postCart:fetchedUser:', fetchedUser);
+    return Product.findById(prodId)
+    .then(product => {
+      console.log('shop-controller.postCart:with product:', product);
+      return fetchedUser.addToCart(product)
+      .then(result => {
+        // console.log('shop-controller.postCart:result', result);
+        res.redirect('/cart');
+      });
+    })
+    .catch(error => {
+      console.log('postCart: error:', error);
+      res.status(500).json({
+        message: "postCart failed!",
+        error: error
+      });
+    });
   } else if (config.environment.dbType === config.environment.DB_SQLZ) {
     const prodId = req.body.productId;
     let fetchedCart;
@@ -479,7 +579,23 @@ exports.postCartDeleteProduct = (req, res, next) => {
         error: error
       });
     });
-  } else if (config.environment.dbType === config.environment.DB_SQLZ) {
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    console.log('postCartDeleteProduct', req.body.productId);
+    console.log('postCartDeleteProduct', req.user);
+    const prodId = req.body.productId;
+    req.user
+      .removeFromCart(prodId)
+      .then(result => {
+        res.redirect('/cart');
+      })
+      .catch(error => {
+        console.log('postCartDeleteProduct: error:', error);
+        res.status(500).json({
+          message: "postCartDeleteProduct failed!",
+          error: error
+        });
+      });
+    } else if (config.environment.dbType === config.environment.DB_SQLZ) {
     const prodId = req.body.productId;
     req.user
       .getCart()
@@ -510,7 +626,18 @@ exports.postCartDeleteProduct = (req, res, next) => {
 
 exports.postOrder = (req, res, next) => {
   // let fetchedCart;
-  const realUser = User.factory(req.user);
+  let realUser;
+  if (config.environment.dbType === config.environment.DB_JSONDB ||
+      config.environment.dbType === config.environment.DB_MONGODB) {
+    realUser = User.factory(req.user);
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    realUser = new User(req.user);
+  } else {
+    const eMsg = 'postCartDeleteProduct: request dbtype:"' + config.environment.dbType + '" not supported';
+    console.log(eMsg);
+    return Promise.resolve({ error: eMsg});
+  }  
+
   return realUser.addOrder()
     .then(result => {
       res.redirect('/orders');
@@ -519,8 +646,12 @@ exports.postOrder = (req, res, next) => {
 };
 
 exports.getOrders = (req, res, next) => {
-  const realUser = User.factory(req.user);
+  let realUser;
   let realOrders;
+  if (config.environment.dbType === config.environment.DB_JSONDB ||
+    config.environment.dbType === config.environment.DB_MONGODB) {
+    realUser = User.factory(req.user);
+  // not mongoose, get the product data
   realUser
     .getOrders()     // {include: ['products']})
     .then(orders => {
@@ -590,6 +721,30 @@ exports.getOrders = (req, res, next) => {
       });
     })
     .catch(err => console.log(err));
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    realUser = new User(req.user);
+    return realUser.getOrders()     // includes product data via populate)
+    .then(result => {
+      console.log('result:', result);
+      res.render('shop/orders', {
+        path: '/orders',
+        pageTitle: 'Your Orders',
+        orders: result
+      });
+    })
+    .catch(error => {
+      console.log('shop.getOrders: error:', error);
+      res.status(500).json({
+        message: "shop.getOrders failed!",
+        error: error
+      });
+    })
+  } else {
+    const eMsg = 'postCartDeleteProduct: request dbtype:"' + config.environment.dbType + '" not supported';
+    console.log(eMsg);
+    return Promise.resolve({ error: eMsg});
+  }  
+
 };
 
 exports.getCheckout = (req, res, next) => {

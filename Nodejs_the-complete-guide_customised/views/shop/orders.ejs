@@ -11,7 +11,7 @@
                 <ul class="orders">
                     <% orders.forEach(order => { %>
                         <li class="orders__item">
-                            <h1>Order - # <%= order.id %></h1>
+                            <h1>Order - # <%= order.id %>  Total: $<%= order.totalPrice %> </h1>
                             <ul class="orders__products">
                                 <% order.items.forEach(product => { %>
                                     <li class="orders__products-item"><%= product.title %> (<%= product.qty %>) &nbsp;   
@@ -25,3 +25,4 @@
             <% } %>
         </main>
         <%- include('../includes/end.ejs') %>
+        
