@@ -1,9 +1,8 @@
 const bodyParser = require('body-parser');
-const express = require('express');
-const path = require('path');
 
 const config = require('./util/config');
 const errorController = require('./controllers/error-controller');
+const express = require('express');
 const globalVars = require('./util/global-vars');
 
 // const expressHandlebars = require('express-handlebars');
@@ -14,7 +13,10 @@ if (config.environment.dbType === config.environment.DB_MONGODB) {
 }  
 const mongoose = require('mongoose');
 const mysqldb = require('./util/database-mysql2');
+const path = require('path');
 const sequelize = require('./util/database-sqlz');
+const session = require('express-session');
+const MongoDBStore = require('connect-mongodb-session')(session);
 const uuidTools = require('./util/uuid-tools');
 
 let Cart;
@@ -43,6 +45,10 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
 }
 
 const app = express();
+const mdbStore = new MongoDBStore({
+  uri: globalVars.MONGO_Config.MONGO_LOCAL_NODEJS_COURSE_DB,
+  collection: 'sessions'
+});
 
 // app.engine('hbs', expressHandlebars({ // non layout files have the extension named in the engine
 //   extname: 'hbs', // layout files have this extension.
@@ -59,6 +65,7 @@ app.set('views', 'views');
 
 const adminRoutes = require('./routes/admin-routes');
 const shopRoutes = require('./routes/shop-routes');
+const authRoutes = require('./routes/auth-routes');
 
 if (config.environment.dbType === config.environment.DB_FILEDB) {
   mockdb.initDB();
@@ -78,6 +85,16 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use("/images", express.static(path.join("images")));
+app.use(
+  session({
+    secret: globalVars.JWT_Key, 
+    resave: false, 
+    saveUninitialized: false,
+    store: mdbStore,
+    cookie: {maxAge: 3600000} // miliseconds 3600000 = 1hour
+  })
+);
+
 
 
 app.use((req, res, next) => {
@@ -96,6 +113,7 @@ app.use((req, res, next) => {
 
 // get the logged in user
 app.use((req, res, next) => {
+  let userEmail;
   if (config.environment.dbType === config.environment.DB_SQLZ) {
     User.findAll({where: { email: "ndj@shadowlands.erehwon" }})
     .then(users => {
@@ -120,22 +138,28 @@ app.use((req, res, next) => {
       next();
     });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
-    console.log('getUserByEmail:')
-    User.findOne({email: 'ndj@shadowlands.erehwon'}).then(user => {
-      console.log('findUser:', user);
-      if (!user) {
-        const user = new User({
-          name: 'ndj',
-          email: 'ndj@shadowlands.erehwon',
-          password: '1qQ@',
-          id: '4cddfd1dec7695560c98d329',
-          _id: Schema.Types.ObjectId('4cddfd1dec7695560c98d329')
+    if (req.session) {  // if the session doesn't exist, we get an error setting it
+      userEmail = req.session.userEmail;
+      console.log('app.use User Email:', userEmail);
+      // session.user is not being retained
+      // also it is not a mongoose object
+      if (!userEmail) {
+        console.log('no userEmail: next() ==>');
+        next();
+      } else {
+        User.findOne({email: userEmail}).then(fUser => {
+          console.log('findUser:', fUser);
+          req.user = fUser;
+          if (req.session) {
+            req.session.user = fUser;
+          }
+          console.log('req.user:', req.user, ': next() ==>');
+          next();
         });
-        user.save();
       }
-      req.user = user;
-      next();
-    });
+    } else {
+      console.log('no session:', req.session);
+    }
   } else {
     User.getByEmail("ndj@shadowlands.erehwon")
     .then(result => {
@@ -150,6 +174,8 @@ app.use((req, res, next) => {
 //app.use('/admin', adminRoutes.routes);  
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
+app.use(authRoutes);
+
 app.use(errorController.get404);
 
 if (config.environment.dbType === config.environment.DB_SQLZ) {

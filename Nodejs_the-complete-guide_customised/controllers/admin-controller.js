@@ -20,15 +20,33 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
 const uuidTools = require('../util/uuid-tools');
 
 exports.getAddProduct = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('addProduct: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
   console.log('sending admin/edit-product');
   res.render('admin/edit-product', {
     pageTitle: 'Add Product',
     path: '/admin/add-product',
-    editing: false
+    editing: false,
+    isAuthenticated: req.session.isLoggedIn
   });
 };
 
 exports.postAddProduct = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('postAddProduct: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
+
   console.log('req.body:', req.body, 'req.user:', req.user);
   const title = req.body.title;
   const imageUrl = req.body.imageUrl;
@@ -132,6 +150,14 @@ exports.postAddProduct = (req, res, next) => {
 };
 
 exports.getEditProduct = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('editProduct: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
   const editMode = req.query.edit;
   if (!editMode) {
     return res.redirect('/');
@@ -162,7 +188,7 @@ exports.getEditProduct = (req, res, next) => {
         });
       })
       .catch(err => console.log(err));
-    } else if (config.environment.dbType === config.environment.DB_SQLZ) {
+  } else if (config.environment.dbType === config.environment.DB_SQLZ) {
       // console.log('req.user:', Object.keys(req.user.__proto__));
       req.user.getProducts({where: {id: prodId}})   // select only for the user as owner
       // Product.findByPk(prodId)
@@ -180,7 +206,7 @@ exports.getEditProduct = (req, res, next) => {
             });
         })
         .catch(err => console.log(err));
-      } else if (config.environment.dbType === config.environment.DB_JSONDB) {
+  } else if (config.environment.dbType === config.environment.DB_JSONDB) {
         Product.findById(prodId)
         .then((result) => {
           console.log('result.data:', result.data);
@@ -192,12 +218,13 @@ exports.getEditProduct = (req, res, next) => {
             pageTitle: 'Edit Product',
             path: '/admin/edit-product',
             editing: editMode,
-            product: product
+            product: product,
+            isAuthenticated: req.session.isLoggedIn
           });
         })
         .catch(err => console.log(err));
-      } else if (config.environment.dbType === config.environment.DB_MONGODB ||
-                 config.environment.dbType === config.environment.DB_MONGOOSE) {
+  } else if (config.environment.dbType === config.environment.DB_MONGODB ||
+             config.environment.dbType === config.environment.DB_MONGOOSE) {
         Product.findById(prodId)
         .then((product) => {
           if (config.environment.dbType === config.environment.DB_MONGOOSE) {
@@ -211,11 +238,12 @@ exports.getEditProduct = (req, res, next) => {
             pageTitle: 'Edit Product',
             path: '/admin/edit-product',
             editing: editMode,
-            product: product
+            product: product,
+            isAuthenticated: req.session.isLoggedIn
           });
         })
         .catch(err => console.log(err));
-    } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
+  } else if (config.environment.dbType === config.environment.DB_MOCKDB) {
       Product.findById(prodId)
       .then((result) => {
         console.log('result.data:', result.data);
@@ -231,12 +259,21 @@ exports.getEditProduct = (req, res, next) => {
         });
       })
       .catch(err => console.log(err));
-    } else {
+  } else {
       console.log('getEditProduct: request dbtype:"' + config.environment.dbType + '" not supported');
-    }
+  }
 };
 
 exports.getProducts = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('getProducts: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
+
   console.log('admin-controller.getProducts');
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.fetchAll(products => {
@@ -276,7 +313,8 @@ exports.getProducts = (req, res, next) => {
       res.render('admin/products', {
         prods: result.data,
         pageTitle: 'Admin Products',
-        path: '/admin/products'
+        path: '/admin/products',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(error => {
@@ -292,7 +330,8 @@ exports.getProducts = (req, res, next) => {
       res.render('admin/products', {
         prods: result,
         pageTitle: 'Admin Products',
-        path: '/admin/products'
+        path: '/admin/products',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(error => {
@@ -317,7 +356,8 @@ exports.getProducts = (req, res, next) => {
       res.render('admin/products', {
         prods: products,
         pageTitle: 'Admin Products',
-        path: '/admin/products'
+        path: '/admin/products',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(err => console.log(err));
@@ -344,6 +384,14 @@ exports.getProducts = (req, res, next) => {
 };
 
 exports.postDeleteProduct = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('postDeleteProduct: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
   console.log('postDeleteProduct', req.body);
   const prodId = req.body.productId;
   const prodPrice = req.body.productPrice;
@@ -457,6 +505,14 @@ exports.postDeleteProduct = (req, res, next) => {
 };
 
 exports.postEditProduct = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('postEditProduct: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
   const prodId = req.body.productId;
   const updatedTitle = req.body.title;
   const updatedPrice = req.body.price;

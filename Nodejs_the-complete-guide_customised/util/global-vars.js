@@ -78,8 +78,23 @@ function standardBody(data, status, statusText, nbr, err) {
   return body;
 }
 
+function parseCookie(cookie) {
+  const splitski = cookie.split(';')
+  let zz;
+  let h = {};
+  let key;
+  splitski.forEach(s => {
+    zz = s.trim().split('=');
+    h[zz[0]] = zz[1];
+    console.log('hash(key):', zz[0], '=', zz[1]);
+  });
+  return h;
+}
+
+
 module.exports = {
   dateString: dateString,
+  parseCookie: parseCookie,
   standardBody: standardBody,
   JWT_token: JWT_token,
   JWT_Key: JWT_Secret_Sign,

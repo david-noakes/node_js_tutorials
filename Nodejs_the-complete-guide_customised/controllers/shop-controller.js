@@ -26,7 +26,7 @@ exports.getProducts = (req, res, next) => {
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.fetchAll(products => {
       // console.log("prods:", products);
-      res.render('shop/product-list', {
+      return res.render('shop/product-list', {
         prods: products,
         pageTitle: 'All Products',
         path: '/products'
@@ -39,7 +39,8 @@ exports.getProducts = (req, res, next) => {
       res.render('shop/product-list', {
         prods: result.data,
         pageTitle: 'All Products',
-        path: '/products'
+        path: '/products',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(error => {
@@ -52,21 +53,21 @@ exports.getProducts = (req, res, next) => {
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     Product.find()
     .then(products => {
-      return products.map(product => {
+      const p = products.map(product => {
         product.id = product._id;
         return product;
-      })
-    })
-    .then(products => {
+      });
+      const isLoggedIn = (req.session && req.session.isLoggedIn === true)
       res.render('shop/product-list', {
-        prods: products,
+        prods: p,
         pageTitle: 'All Products',
-        path: '/products'
+        path: '/products',
+        isAuthenticated: isLoggedIn
       });
     })
     .catch(error => {
-      console.log('getProducts: error:', error);
-      res.status(500).json({
+      console.log('getProducts: error:', error, error.message);
+      return res.status(500).json({
         message: "getProducts failed!",
         error: error
       });
@@ -77,7 +78,8 @@ exports.getProducts = (req, res, next) => {
       res.render('shop/product-list', {
         prods: result,
         pageTitle: 'All Products',
-        path: '/products'
+        path: '/products',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(error => {
@@ -129,7 +131,7 @@ exports.getProduct = (req, res, next) => {
   const prodId = req.params.productId;
   if (config.environment.dbType === config.environment.DB_FILEDB) {
   Product.findById(prodId, product => {
-    res.render('shop/product-detail', {
+    return res.render('shop/product-detail', {
       product: product,
       pageTitle: product.title,
       path: '/products'
@@ -177,7 +179,8 @@ exports.getProduct = (req, res, next) => {
         res.render('shop/product-detail', {
           product: product,
           pageTitle: product.title,
-          path: '/products'
+          path: '/products',
+          isAuthenticated: req.session.isLoggedIn
         });
       })
       .catch(error => {
@@ -196,7 +199,8 @@ exports.getProduct = (req, res, next) => {
         res.render('shop/product-detail', {
           product: product,
           pageTitle: product.title,
-          path: '/products'
+          path: '/products',
+          isAuthenticated: req.session.isLoggedIn
         });
       })
       .catch(error => {
@@ -214,7 +218,7 @@ exports.getProduct = (req, res, next) => {
 exports.getIndex = (req, res, next) => {
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.fetchAll(products => {
-      res.render('shop/index', {
+      return res.render('shop/index', {
         prods: products,
         pageTitle: 'Shop',
         path: '/'
@@ -227,7 +231,8 @@ exports.getIndex = (req, res, next) => {
       res.render('shop/index', {
         prods: result,
         pageTitle: 'Shop',
-        path: '/'
+        path: '/',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(error => {
@@ -240,21 +245,19 @@ exports.getIndex = (req, res, next) => {
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     Product.find()
     .then(products => {
-      return products.map(product => {
+      const p = products.map(product => {
         product.id = product._id;
         return product;
-      })
-    })
-    .then(result => {
-      // console.log(result);
+      });
       res.render('shop/index', {
-        prods: result,
+        prods: p,
         pageTitle: 'Shop',
-        path: '/'
+        path: '/',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(error => {
-      console.log('getIndex: error:', error);
+      console.log('getIndex: error:', error, error.message);
       res.status(500).json({
         message: "getIndex failed!",
         error: error
@@ -268,7 +271,8 @@ exports.getIndex = (req, res, next) => {
       res.render('shop/index', {
         prods: result.data,
         pageTitle: 'Shop',
-        path: '/'
+        path: '/',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(error => {
@@ -317,6 +321,14 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged');
+    console.log('getCart: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
   if (config.environment.dbType === config.environment.DB_SQLZ) {
     req.user
       .getCart()
@@ -336,7 +348,8 @@ exports.getCart = (req, res, next) => {
     })
     .catch(err => console.log(err));
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
-    const user = new User(req.user);
+    console.log('shop.getCart:req.user:', req.user);
+    const user = req.user; // new User(req.user);  // the mongoose object retains all its functions
     user.getCart()
     .then(cart => {
       cart.populate('products.id')
@@ -354,7 +367,8 @@ exports.getCart = (req, res, next) => {
         return res.render('shop/cart', {
           path: '/cart',
           pageTitle: 'Your Cart',
-          products: cartProducts
+          products: cartProducts,
+          isAuthenticated: req.session.isLoggedIn
         });
       })
     })
@@ -399,7 +413,8 @@ exports.getCart = (req, res, next) => {
             return res.render('shop/cart', {
               path: '/cart',
               pageTitle: 'Your Cart',
-              products: cartProducts
+              products: cartProducts,
+              isAuthenticated: req.session.isLoggedIn
             });
           }  
         }) 
@@ -455,6 +470,15 @@ exports.getCart = (req, res, next) => {
 };
 
 exports.postCart = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('postCart: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
+
   if (config.environment.dbType === config.environment.DB_JSONDB ||
       config.environment.dbType === config.environment.DB_MONGODB ||
       config.environment.dbType === config.environment.DB_MOCKDB ||
@@ -543,6 +567,14 @@ exports.postCart = (req, res, next) => {
 };
 
 exports.postCartDeleteProduct = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('postCartDeleteProduct: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
   if (config.environment.dbType === config.environment.DB_JSONDB ||
     config.environment.dbType === config.environment.DB_MONGODB ||
     config.environment.dbType === config.environment.DB_MOCKDB ||
@@ -625,6 +657,14 @@ exports.postCartDeleteProduct = (req, res, next) => {
 };
 
 exports.postOrder = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('postOrder: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
   // let fetchedCart;
   let realUser;
   if (config.environment.dbType === config.environment.DB_JSONDB ||
@@ -646,6 +686,15 @@ exports.postOrder = (req, res, next) => {
 };
 
 exports.getOrders = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged in');
+    console.log('getOrders: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
+
   let realUser;
   let realOrders;
   if (config.environment.dbType === config.environment.DB_JSONDB ||
@@ -660,7 +709,8 @@ exports.getOrders = (req, res, next) => {
         res.render('shop/orders', {
           path: '/orders',
           pageTitle: 'Your Orders',
-          orders: orders
+          orders: orders,
+          isAuthenticated: req.session.isLoggedIn
         });
       }
       // console.log('order.items:', orders[0].items);
@@ -717,7 +767,8 @@ exports.getOrders = (req, res, next) => {
       res.render('shop/orders', {
         path: '/orders',
         pageTitle: 'Your Orders',
-        orders: realOrders
+        orders: realOrders,
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(err => console.log(err));
@@ -729,7 +780,8 @@ exports.getOrders = (req, res, next) => {
       res.render('shop/orders', {
         path: '/orders',
         pageTitle: 'Your Orders',
-        orders: result
+        orders: result,
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(error => {
@@ -748,8 +800,18 @@ exports.getOrders = (req, res, next) => {
 };
 
 exports.getCheckout = (req, res, next) => {
+  if (!req.session.isLoggedIn) {
+    error = new Error('You are not logged');
+    console.log('getCart: error:', error);
+    return res.status(401).json({
+      message: "You must login for this action.",
+      error: error
+    });
+  }
+
   res.render('shop/checkout', {
     path: '/checkout',
-    pageTitle: 'Checkout'
+    pageTitle: 'Checkout',
+    isAuthenticated: req.session.isLoggedIn
   });
 };
