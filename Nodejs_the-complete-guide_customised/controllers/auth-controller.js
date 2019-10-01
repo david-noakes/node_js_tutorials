@@ -1,3 +1,5 @@
+const bcrypt = require('bcryptjs');
+
 const config = require('../util/config');
 const globalVars = require('../util/global-vars');
 const User = require('../models/user-mongoose');
@@ -18,7 +20,7 @@ exports.getLogin = (req, res, next) => {
   res.render('auth/login', {
     path: '/login',
     pageTitle: 'Login',
-    isAuthenticated: isLoggedIn
+    isAuthenticated: false
   });
 };
 
@@ -39,4 +41,49 @@ exports.postLogout = (req, res, next) => {
     console.log(err);
     res.redirect('/');
   });
+};
+
+exports.getSignup = (req, res, next) => {
+  eMsg = req.query.errorMessage;
+  res.render('auth/signup', {
+    path: '/signup',
+    pageTitle: 'Signup',
+    errorMessage: eMsg,
+    isAuthenticated: false
+  });
+};
+
+exports.postSignup = (req, res, next) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  const confirmPassword = req.body.confirmPassword;
+  const name = email.split('@');
+  console.log('auth-controller.postSignup:email:', email, ', pwd:', password);
+  User.getByEmail(email)
+    .then(userDoc => {
+      if (userDoc) {
+        console.log('error: user already exists');
+        return res.redirect('/signup?errorMessage=error: user already exists');
+      }
+      return bcrypt
+        .hash(password, 12)
+        .then(hashedPassword => {
+          console.log('hashedpwd:', hashedPassword);
+          const user = new User({
+            name: name[0],
+            email: email,
+            password: hashedPassword
+          });
+          return user.save();
+        })
+        .then(result => {
+          res.redirect('/login');
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    })
+    .catch(err => {
+      console.log(err);
+    });
 };

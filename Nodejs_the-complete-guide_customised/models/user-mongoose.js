@@ -47,6 +47,21 @@ userSchema.methods.addToCart = function(product) {
   .catch(err => {console.log('user.addToCart:error:', err); return err;})
 };
 
+
+userSchema.statics.getByEmail = function(email)  {
+  console.log('User.getByEmail:', email);
+  return this
+    .findOne({ email: email })
+    .then(user => {
+      console.log('user.getByEmail:found:', user);
+      return user;
+    })
+    .catch(err => {
+      console.log(err);
+      return err;
+    });
+}
+
 userSchema.methods.getId = function() {
   return this._id.toString();
 }

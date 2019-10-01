@@ -147,7 +147,8 @@ app.use((req, res, next) => {
         console.log('no userEmail: next() ==>');
         next();
       } else {
-        User.findOne({email: userEmail}).then(fUser => {
+        User.getByEmail(userEmail)
+        .then(fUser => {
           console.log('findUser:', fUser);
           req.user = fUser;
           if (req.session) {
@@ -159,6 +160,7 @@ app.use((req, res, next) => {
       }
     } else {
       console.log('no session:', req.session);
+      next();
     }
   } else {
     User.getByEmail("ndj@shadowlands.erehwon")
