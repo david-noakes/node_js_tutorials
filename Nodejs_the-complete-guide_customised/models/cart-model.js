@@ -71,7 +71,6 @@ module.exports = class Cart {
       console.log('cart-model.getCart:userId:', userId);
       return db
         .collection(cartsTable)
-        // .findOne({ userId: new mongodb.ObjectId(userId) });
         .findOne({
           $or: [{userId: new mongodb.ObjectId(userId)},
                 {userId: userId}]

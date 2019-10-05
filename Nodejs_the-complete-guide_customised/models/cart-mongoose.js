@@ -72,32 +72,32 @@ cartSchema.methods.deleteProduct = function(id, productPrice) {
   return this.save();
 }
 
-cartSchema.methods.getCart = function(userId) {
+cartSchema.statics.getCart = function(userId) {
   console.log('cart-model.getCart:userId:', userId);
-  return Cart
+  return this
     .findOne(
-      // {
-      // $or: [{userId: new Schema.Types.ObjectId(userId)},
-      //   {userId: userId}]
-      //   }
+      {
+      $or: [{userId: new Schema.Types.ObjectId(userId)},
+        {userId: userId}]
+        }
       )
     .then(cart => {
-      if (cart._id) {
+      if (cart && cart._id) {
         return cart;
       } else {
-        return Cart.createCart(userId);
+        return cartSchema.createCart(userId);
       }
     })
 }
 
-cartSchema.methods.createCart = function(id) {
-  let cart = new Cart({
+cartSchema.statics.createCart = function(id) {
+  let cart = new cartSchema({  // ?? cartSchema
     userId: id,
     products: [],
     totalPrice: 0
   });
   console.log('createCart: new cart:', cart);
-  return cart.save()
+  cart.save()
   .then(result => {
     console.log('createCart:result:ops:', result.ops);
     cart._id = result.ops.insertedId;

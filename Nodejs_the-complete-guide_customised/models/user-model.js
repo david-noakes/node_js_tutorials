@@ -24,13 +24,17 @@ module.exports = class User {
     email, // { type: String, required: true, unique: true },
     password, // { type: String, required: true }
     name, // { type: String, required: true }
-    id
+    id,
+    isAdmin // admin access boolean
   ) {
     this.email = email;
     this.password = password;
     this.name = name;
     if (id) {
       this.id = id;
+    }
+    if (isAdmin) {
+      this.isAdmin = isAdmin === true;
     }
   }
 
@@ -195,7 +199,6 @@ module.exports = class User {
         config.environment.dbType === config.environment.DB_MONGODB ||
         config.environment.dbType === config.environment.DB_MYSQL  ||
         config.environment.dbType === config.environment.DB_FILEDB) {
-
       return Cart.getCart(this.id).then(cart => {
         console.log('user:getCart:found', cart);
         let realCart;

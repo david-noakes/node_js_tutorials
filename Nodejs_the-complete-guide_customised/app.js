@@ -1,8 +1,10 @@
 const bodyParser = require('body-parser');
 
 const config = require('./util/config');
+const csrf = require('csurf');
 const errorController = require('./controllers/error-controller');
 const express = require('express');
+const flash = require('connect-flash');
 const globalVars = require('./util/global-vars');
 
 // const expressHandlebars = require('express-handlebars');
@@ -49,6 +51,8 @@ const mdbStore = new MongoDBStore({
   uri: globalVars.MONGO_Config.MONGO_LOCAL_NODEJS_COURSE_DB,
   collection: 'sessions'
 });
+
+const csrfProtection = csrf();
 
 // app.engine('hbs', expressHandlebars({ // non layout files have the extension named in the engine
 //   extname: 'hbs', // layout files have this extension.
@@ -108,8 +112,14 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Methods",
     "GET, POST, PATCH, PUT, DELETE, OPTIONS"
   );
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE' ) {
+    console.log('csurf:', req._csrf);
+  }
   next();
 });
+
+app.use(csrfProtection);
+app.use(flash());
 
 // get the logged in user
 app.use((req, res, next) => {
@@ -140,21 +150,22 @@ app.use((req, res, next) => {
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     if (req.session) {  // if the session doesn't exist, we get an error setting it
       userEmail = req.session.userEmail;
-      console.log('app.use User Email:', userEmail);
+      const user = req.session.user;
+      console.log('app.use User Email:', userEmail, ', session.user:', user);
       // session.user is not being retained
       // also it is not a mongoose object
       if (!userEmail) {
-        console.log('no userEmail: next() ==>');
+        console.log('No Email:', userEmail);
         next();
       } else {
         User.getByEmail(userEmail)
-        .then(fUser => {
-          console.log('findUser:', fUser);
+        .then(fUser => { // logged in getUserByEmail
+          // console.log('findUser:', fUser);
           req.user = fUser;
           if (req.session) {
             req.session.user = fUser;
           }
-          console.log('req.user:', req.user, ': next() ==>');
+          console.log('req.user:', req.user);
           next();
         });
       }
@@ -172,6 +183,18 @@ app.use((req, res, next) => {
     .catch(err => {console.log(err);   next();    });
   }
 });
+
+app.use((req, res, next) => {
+  // res.locals.isAdmin = (req.session && req.session.user && req.session.user.isAdmin);
+  res.locals.userName = req.session.userEmail;
+  res.locals.isAuthenticated = req.session.isLoggedIn;
+  res.locals.isAdmin = (req.user && req.user.isAdmin);
+  res.locals.csrfToken = req.csrfToken();
+  console.log('res.locals:', res.locals);
+  next();
+});
+
+
 
 //app.use('/admin', adminRoutes.routes);  
 app.use('/admin', adminRoutes);

@@ -20,32 +20,18 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
 const uuidTools = require('../util/uuid-tools');
 
 exports.getAddProduct = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('addProduct: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
+  res.userName = req.session.userEmail;
+  const userName = req.session.userEmail;
   console.log('sending admin/edit-product');
   res.render('admin/edit-product', {
     pageTitle: 'Add Product',
     path: '/admin/add-product',
-    editing: false,
-    isAuthenticated: req.session.isLoggedIn
+    editing: false
   });
 };
 
 exports.postAddProduct = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('postAddProduct: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
+  const userName = req.session.userEmail;
 
   console.log('req.body:', req.body, 'req.user:', req.user);
   const title = req.body.title;
@@ -150,14 +136,7 @@ exports.postAddProduct = (req, res, next) => {
 };
 
 exports.getEditProduct = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('editProduct: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
+  const userName = req.session.userEmail;
   const editMode = req.query.edit;
   if (!editMode) {
     return res.redirect('/');
@@ -191,8 +170,6 @@ exports.getEditProduct = (req, res, next) => {
   } else if (config.environment.dbType === config.environment.DB_SQLZ) {
       // console.log('req.user:', Object.keys(req.user.__proto__));
       req.user.getProducts({where: {id: prodId}})   // select only for the user as owner
-      // Product.findByPk(prodId)
-        // .then( product => {
           .then( products => {
             const product = products[0];
             if (!product) {
@@ -218,8 +195,7 @@ exports.getEditProduct = (req, res, next) => {
             pageTitle: 'Edit Product',
             path: '/admin/edit-product',
             editing: editMode,
-            product: product,
-            isAuthenticated: req.session.isLoggedIn
+            product: product
           });
         })
         .catch(err => console.log(err));
@@ -238,8 +214,7 @@ exports.getEditProduct = (req, res, next) => {
             pageTitle: 'Edit Product',
             path: '/admin/edit-product',
             editing: editMode,
-            product: product,
-            isAuthenticated: req.session.isLoggedIn
+            product: product
           });
         })
         .catch(err => console.log(err));
@@ -265,14 +240,7 @@ exports.getEditProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('getProducts: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
+  const userName = req.session.userEmail;
 
   console.log('admin-controller.getProducts');
   if (config.environment.dbType === config.environment.DB_FILEDB) {
@@ -330,8 +298,7 @@ exports.getProducts = (req, res, next) => {
       res.render('admin/products', {
         prods: result,
         pageTitle: 'Admin Products',
-        path: '/admin/products',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/admin/products'
       });
     })
     .catch(error => {
@@ -356,8 +323,7 @@ exports.getProducts = (req, res, next) => {
       res.render('admin/products', {
         prods: products,
         pageTitle: 'Admin Products',
-        path: '/admin/products',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/admin/products'
       });
     })
     .catch(err => console.log(err));
@@ -384,14 +350,7 @@ exports.getProducts = (req, res, next) => {
 };
 
 exports.postDeleteProduct = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('postDeleteProduct: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
+  const userName = req.session.userEmail;
   console.log('postDeleteProduct', req.body);
   const prodId = req.body.productId;
   const prodPrice = req.body.productPrice;
@@ -505,14 +464,7 @@ exports.postDeleteProduct = (req, res, next) => {
 };
 
 exports.postEditProduct = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('postEditProduct: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
+  const userName = req.session.userEmail;
   const prodId = req.body.productId;
   const updatedTitle = req.body.title;
   const updatedPrice = req.body.price;

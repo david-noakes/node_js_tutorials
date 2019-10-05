@@ -91,11 +91,46 @@ function parseCookie(cookie) {
   return h;
 }
 
+function getFlashMessage(r,m) {
+  let message = r.flash(m);
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = '';
+  }
+  return message;
+
+}
+
+function putSessionData(req, key, data) {
+  req.session[key] = data;
+  return req.session.save(err => {
+    console.log(err);
+  });
+}
+
+function getSessionData(req, key) {
+  return req.session[key];
+}
+
+function pullSessionData(req, key) {
+  let z = getSessionData(req, key);
+  putSessionData(req, key, null);
+  req.session.save(err => {
+    console.log(err);
+  });
+  return z;
+}
+
 
 module.exports = {
   dateString: dateString,
+  getFlashMessage: getFlashMessage,
   parseCookie: parseCookie,
   standardBody: standardBody,
+  getSessionData: getSessionData,
+  pullSessionData: pullSessionData,
+  putSessionData: putSessionData,
   JWT_token: JWT_token,
   JWT_Key: JWT_Secret_Sign,
   fbConstants: fbConstants,

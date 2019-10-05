@@ -23,6 +23,7 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
 const uuidTools = require('../util/uuid-tools');
 
 exports.getProducts = (req, res, next) => {
+  const userName = req.session.userEmail;
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.fetchAll(products => {
       // console.log("prods:", products);
@@ -39,8 +40,7 @@ exports.getProducts = (req, res, next) => {
       res.render('shop/product-list', {
         prods: result.data,
         pageTitle: 'All Products',
-        path: '/products',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/products'
       });
     })
     .catch(error => {
@@ -61,8 +61,7 @@ exports.getProducts = (req, res, next) => {
       res.render('shop/product-list', {
         prods: p,
         pageTitle: 'All Products',
-        path: '/products',
-        isAuthenticated: isLoggedIn
+        path: '/products'
       });
     })
     .catch(error => {
@@ -78,8 +77,7 @@ exports.getProducts = (req, res, next) => {
       res.render('shop/product-list', {
         prods: result,
         pageTitle: 'All Products',
-        path: '/products',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/products'
       });
     })
     .catch(error => {
@@ -129,6 +127,7 @@ exports.getProducts = (req, res, next) => {
 
 exports.getProduct = (req, res, next) => {
   const prodId = req.params.productId;
+  const userName = req.session.userEmail;
   if (config.environment.dbType === config.environment.DB_FILEDB) {
   Product.findById(prodId, product => {
     return res.render('shop/product-detail', {
@@ -179,8 +178,7 @@ exports.getProduct = (req, res, next) => {
         res.render('shop/product-detail', {
           product: product,
           pageTitle: product.title,
-          path: '/products',
-          isAuthenticated: req.session.isLoggedIn
+          path: '/products'      
         });
       })
       .catch(error => {
@@ -199,8 +197,7 @@ exports.getProduct = (req, res, next) => {
         res.render('shop/product-detail', {
           product: product,
           pageTitle: product.title,
-          path: '/products',
-          isAuthenticated: req.session.isLoggedIn
+          path: '/products'
         });
       })
       .catch(error => {
@@ -216,6 +213,7 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
+  const userName = req.session.userEmail;
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.fetchAll(products => {
       return res.render('shop/index', {
@@ -231,8 +229,7 @@ exports.getIndex = (req, res, next) => {
       res.render('shop/index', {
         prods: result,
         pageTitle: 'Shop',
-        path: '/',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/'
       });
     })
     .catch(error => {
@@ -252,8 +249,7 @@ exports.getIndex = (req, res, next) => {
       res.render('shop/index', {
         prods: p,
         pageTitle: 'Shop',
-        path: '/',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/'
       });
     })
     .catch(error => {
@@ -271,8 +267,7 @@ exports.getIndex = (req, res, next) => {
       res.render('shop/index', {
         prods: result.data,
         pageTitle: 'Shop',
-        path: '/',
-        isAuthenticated: req.session.isLoggedIn
+        path: '/'
       });
     })
     .catch(error => {
@@ -321,14 +316,7 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged');
-    console.log('getCart: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
+  const userName = req.session.userEmail;
   if (config.environment.dbType === config.environment.DB_SQLZ) {
     req.user
       .getCart()
@@ -367,8 +355,7 @@ exports.getCart = (req, res, next) => {
         return res.render('shop/cart', {
           path: '/cart',
           pageTitle: 'Your Cart',
-          products: cartProducts,
-          isAuthenticated: req.session.isLoggedIn
+          products: cartProducts
         });
       })
     })
@@ -413,8 +400,7 @@ exports.getCart = (req, res, next) => {
             return res.render('shop/cart', {
               path: '/cart',
               pageTitle: 'Your Cart',
-              products: cartProducts,
-              isAuthenticated: req.session.isLoggedIn
+              products: cartProducts
             });
           }  
         }) 
@@ -470,15 +456,7 @@ exports.getCart = (req, res, next) => {
 };
 
 exports.postCart = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('postCart: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
-
+  const userName = req.session.userEmail;
   if (config.environment.dbType === config.environment.DB_JSONDB ||
       config.environment.dbType === config.environment.DB_MONGODB ||
       config.environment.dbType === config.environment.DB_MOCKDB ||
@@ -567,14 +545,7 @@ exports.postCart = (req, res, next) => {
 };
 
 exports.postCartDeleteProduct = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('postCartDeleteProduct: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
+  const userName = req.session.userEmail;
   if (config.environment.dbType === config.environment.DB_JSONDB ||
     config.environment.dbType === config.environment.DB_MONGODB ||
     config.environment.dbType === config.environment.DB_MOCKDB ||
@@ -657,15 +628,7 @@ exports.postCartDeleteProduct = (req, res, next) => {
 };
 
 exports.postOrder = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('postOrder: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
-  // let fetchedCart;
+  const userName = req.session.userEmail;
   let realUser;
   if (config.environment.dbType === config.environment.DB_JSONDB ||
       config.environment.dbType === config.environment.DB_MONGODB) {
@@ -686,15 +649,7 @@ exports.postOrder = (req, res, next) => {
 };
 
 exports.getOrders = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged in');
-    console.log('getOrders: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
-
+  const userName = req.session.userEmail;
   let realUser;
   let realOrders;
   if (config.environment.dbType === config.environment.DB_JSONDB ||
@@ -709,8 +664,7 @@ exports.getOrders = (req, res, next) => {
         res.render('shop/orders', {
           path: '/orders',
           pageTitle: 'Your Orders',
-          orders: orders,
-          isAuthenticated: req.session.isLoggedIn
+          orders: orders
         });
       }
       // console.log('order.items:', orders[0].items);
@@ -767,8 +721,7 @@ exports.getOrders = (req, res, next) => {
       res.render('shop/orders', {
         path: '/orders',
         pageTitle: 'Your Orders',
-        orders: realOrders,
-        isAuthenticated: req.session.isLoggedIn
+        orders: realOrders
       });
     })
     .catch(err => console.log(err));
@@ -780,8 +733,7 @@ exports.getOrders = (req, res, next) => {
       res.render('shop/orders', {
         path: '/orders',
         pageTitle: 'Your Orders',
-        orders: result,
-        isAuthenticated: req.session.isLoggedIn
+        orders: result
       });
     })
     .catch(error => {
@@ -800,18 +752,9 @@ exports.getOrders = (req, res, next) => {
 };
 
 exports.getCheckout = (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    error = new Error('You are not logged');
-    console.log('getCart: error:', error);
-    return res.status(401).json({
-      message: "You must login for this action.",
-      error: error
-    });
-  }
-
+  const userName = req.session.userEmail;
   res.render('shop/checkout', {
     path: '/checkout',
-    pageTitle: 'Checkout',
-    isAuthenticated: req.session.isLoggedIn
+    pageTitle: 'Checkout'
   });
 };
