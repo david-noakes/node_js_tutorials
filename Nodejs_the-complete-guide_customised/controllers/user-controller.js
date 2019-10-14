@@ -27,13 +27,12 @@ exports.createUser = (req, res, next) => {
     req.url = '/api/users';
     next();
   })
-  .catch(error => {
-    console.log(error);
-    res.status(500).json({
-      message: "User account creation failed!",
-      error: error
-    });
-  })
+  .catch(err => {
+    console.log('user.createUser: error:', err);
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
+  });
 };
 
 // POST /api/user/login

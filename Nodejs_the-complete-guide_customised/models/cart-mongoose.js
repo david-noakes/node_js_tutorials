@@ -81,29 +81,29 @@ cartSchema.statics.getCart = function(userId) {
         {userId: userId}]
         }
       )
-    .then(cart => {
-      if (cart && cart._id) {
-        return cart;
-      } else {
-        return cartSchema.createCart(userId);
-      }
-    })
+    // .then(cart => {
+    //   if (cart && cart._id) {
+    //     return cart;
+    //   } else {
+    //     return cartSchema.createCart(userId);
+    //   }
+    // })
 }
 
-cartSchema.statics.createCart = function(id) {
-  let cart = new cartSchema({  // ?? cartSchema
-    userId: id,
-    products: [],
-    totalPrice: 0
-  });
-  console.log('createCart: new cart:', cart);
-  cart.save()
-  .then(result => {
-    console.log('createCart:result:ops:', result.ops);
-    cart._id = result.ops.insertedId;
-    return cart;
-  }); 
-}
+// cartSchema.statics.createCart = function(id) {
+//   let cart = new Cart({  // ?? cartSchema
+//     userId: id,
+//     products: [],
+//     totalPrice: 0
+//   });
+//   console.log('createCart: new cart:', cart);
+//   cart.save()
+//   .then(result => {
+//     console.log('createCart:result:ops:', result.ops);
+//     cart._id = result.ops.insertedId;
+//     return cart;
+//   }); 
+// }
 
 module.exports = mongoose.model('Cart', cartSchema);
 

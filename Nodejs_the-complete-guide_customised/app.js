@@ -99,8 +99,6 @@ app.use(
   })
 );
 
-
-
 app.use((req, res, next) => {
   console.log('add CORS headers');
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -121,6 +119,9 @@ app.use((req, res, next) => {
 app.use(csrfProtection);
 app.use(flash());
 
+ // put this here so the redirect from the error handler will not loop
+app.get('/500', errorController.get500);
+
 // get the logged in user
 app.use((req, res, next) => {
   let userEmail;
@@ -131,7 +132,13 @@ app.use((req, res, next) => {
       req.user = users[0];
       next();
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      console.log('app.retrieveUser: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
+
   } else if (config.environment.dbType === config.environment.DB_MONGODB) {
     User.getByEmail('ndj@shadowlands.erehwon')
     .then(user => {
@@ -141,11 +148,10 @@ app.use((req, res, next) => {
       next();
     })
     .catch(err => {
-      console.log(err);
-      console.log('mongodb: fake user');
-      const uu = new User('ndj@shadowlands.erehwon', '1qQ@', 'ndj', '4cddfd1dec7695560c98d329');
-      req.user = uu;
-      next();
+      console.log('app.retrieveUser: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     if (req.session) {  // if the session doesn't exist, we get an error setting it
@@ -162,16 +168,17 @@ app.use((req, res, next) => {
         .then(fUser => { // logged in getUserByEmail
           // console.log('findUser:', fUser);
           req.user = fUser;
-          if (req.session) {
-            req.session.user = fUser;
-          }
+          req.session.user = fUser;
           console.log('req.user:', req.user);
           next();
+        })
+        .catch(err => {
+          console.log('app.retrieveUser: error:', err);
+          const error = new Error(err);
+          error.httpStatusCode = 500;
+          return next(error);
         });
-      }
-    } else {
-      console.log('no session:', req.session);
-      next();
+      } 
     }
   } else {
     User.getByEmail("ndj@shadowlands.erehwon")
@@ -180,8 +187,13 @@ app.use((req, res, next) => {
       req.user = result.data[0];
       next();
     })
-    .catch(err => {console.log(err);   next();    });
-  }
+    .catch(err => {
+      console.log('app.retrieveUser: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
+}
 });
 
 app.use((req, res, next) => {
@@ -202,6 +214,14 @@ app.use(shopRoutes);
 app.use(authRoutes);
 
 app.use(errorController.get404);
+
+// this one goes after the catchall because it can 
+// never be reached unless is has error as the first argument
+app.use((error, req, res, next) => {
+  // res.status(error.httpStatusCode).render(...);
+  globalVars.putSessionData(req, 'error', error.message);
+  res.redirect('/500');
+});
 
 if (config.environment.dbType === config.environment.DB_SQLZ) {
   Product.belongsTo(User, { constraints: true, onDelete: 'CASCADE' });

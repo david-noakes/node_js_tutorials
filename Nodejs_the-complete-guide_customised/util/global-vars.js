@@ -28,6 +28,10 @@ var fbConstants = {
   djnUuid: 'aIffoSyapCTKiTU7HZpDHrCdy173'
 }
 
+const sendGrid = {
+  nodeTraining: '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'
+}
+
 var fbconfig = {
   apiKey: "AIzaSyC_wOoDU1B8ueENmAY2Y7_JqNZhyz2Bu-0",
   authDomain: "angular-training-201.firebaseapp.com",
@@ -135,5 +139,6 @@ module.exports = {
   JWT_Key: JWT_Secret_Sign,
   fbConstants: fbConstants,
   MONGO_ATLAS_PW: mongoDBConstants.MONGO_ATLAS_PW,
-  MONGO_Config: mongoDBConstants
+  MONGO_Config: mongoDBConstants,
+  sendGrid: sendGrid
 }

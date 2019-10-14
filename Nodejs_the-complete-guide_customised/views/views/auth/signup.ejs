@@ -20,7 +20,7 @@
    <%- include('../includes/navigation.ejs') %>
 
     <main>
-        <form class="login-form" action="/login" method="POST">
+        <form class="login-form" action="/signup" method="POST">
             <% if (errorMessage || validationErrors) { %>
                 <% if (validationErrors.length > 0) { %>
                     <% for (let err of validationErrors) { %>
@@ -43,32 +43,29 @@
                     value="<%= oldInput.email %>">
             </div>
             <div class="form-control">
-                    <label for="password">Password</label>
-                    <div class="radio-container">
-                            <input style="width: 60%"
-                            class="<%= validationErrors.find(e => e.param === 'password') ? 'invalid' : '' %>"
-                            type="password" 
-                            name="password" 
-                            id="password" 
-                            value="<%= oldInput.password %>">
-                        <button class="btn field-btn" id="pwdButton" type="button"
-                                onclick="togglePwdVis()">Show Password</button>
-                    </div>
-                    <!-- <div class="radio-container">
-                        <label>
-                            <input class="checkbox-inline" type="checkbox" name="pwdToggle" id="pwdToggle" onclick="togglePwdVis()">
-                            Show Password
-                        </label> -->
-                        <!-- <input class="checkbox-inline" type="checkbox" id="x" /> <label for="x"><span>Label text x so long that it will probably wrap so let's see how it goes with the proposed CSS (expected: two lines are aligned nicely)</span></label>
-                        <input class="checkbox-inline" type="checkbox" id="y" /> <label for="y"><span>Label text y</span></label>
-                        <input class="checkbox-inline" type="checkbox" id="z" /> <label for="z"><span>Label text z</span></label> -->
-                    <!-- </div> -->
+                <label for="password">Password</label>
+                <div class="radio-container">
+                        <input style="width: 60%"
+                        class="<%= validationErrors.find(e => e.param === 'password') ? 'invalid' : '' %>"
+                        type="password" 
+                        name="password" 
+                        id="password" 
+                        value="<%= oldInput.password %>">
+                    <button class="btn field-btn" id="pwdButton" type="button"
+                            onclick="togglePwdVis()">Show Password</button>
+                </div>
+            </div>
+            <div class="form-control">
+                <label for="confirmPassword">Confirm Password</label>
+                <input 
+                    class="<%= validationErrors.find(e => e.param === 'confirmPassword') ? 'invalid' : '' %>"
+                    type="password" 
+                    name="confirmPassword" 
+                    id="confirmPassword" 
+                    value="<%= oldInput.confirmPassword %>">
             </div>
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <button class="btn" type="submit">Login</button>
+            <button class="btn" type="submit">Signup</button>
         </form>
-        <div class="centered">
-            <a href="/reset">Reset Password</a>
-        </div>
     </main>
 <%- include('../includes/end.ejs') %>

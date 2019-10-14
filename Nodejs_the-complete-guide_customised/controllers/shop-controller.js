@@ -43,12 +43,11 @@ exports.getProducts = (req, res, next) => {
         path: '/products'
       });
     })
-    .catch(error => {
-      console.log('getProducts: error:', error);
-      res.status(500).json({
-        message: "getProducts failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getProducts: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     Product.find()
@@ -64,12 +63,11 @@ exports.getProducts = (req, res, next) => {
         path: '/products'
       });
     })
-    .catch(error => {
-      console.log('getProducts: error:', error, error.message);
-      return res.status(500).json({
-        message: "getProducts failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getProducts: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_MONGODB) {
     Product.fetchAll()
@@ -80,12 +78,11 @@ exports.getProducts = (req, res, next) => {
         path: '/products'
       });
     })
-    .catch(error => {
-      console.log('getProducts: error:', error);
-      res.status(500).json({
-        message: "getProducts failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getProducts: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_MYSQL) {
     Product.fetchAll()
@@ -96,12 +93,11 @@ exports.getProducts = (req, res, next) => {
         path: '/products'
       });
     })
-    .catch(error => {
-      console.log('getProducts: error:', error);
-      res.status(500).json({
-        message: "getProducts failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getProducts: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_SQLZ) {
     Product.findAll()
@@ -113,15 +109,17 @@ exports.getProducts = (req, res, next) => {
         path: '/products'
       });
     })
-    .catch(error => {
-      console.log('getProducts: error:', error);
-      res.status(500).json({
-        message: "getProducts failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getProducts: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else {
-    console.log('getProducts: request dbtype:"' + config.environment.dbType + '" not supported');
+    const err = 'getProducts: request dbtype:"' + config.environment.dbType + '" not supported';
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -145,12 +143,11 @@ exports.getProduct = (req, res, next) => {
         path: '/products'
       });
     })
-    .catch(error => {
-      console.log('getProduct: error:', error);
-      res.status(500).json({
-        message: "getProduct failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getProduct: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_SQLZL) {
     Product.findByPk(prodId)
@@ -161,15 +158,24 @@ exports.getProduct = (req, res, next) => {
           path: '/products'
         });
       })
-      .catch(error => {
-        console.log('getProduct: error:', error);
-        res.status(500).json({
-          message: "getProduct failed!",
-          error: error
-        });
+      .catch(err => {
+        console.log('getProduct: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
       });
-    } else if (config.environment.dbType === config.environment.DB_MONGODB ||
-               config.environment.dbType === config.environment.DB_MONGOOSE) {
+    
+      // Product.findAll({ where: { id: prodId } })
+      // .then(products => {
+      //   res.render('shop/product-detail', {
+      //     product: products[0],
+      //     pageTitle: products[0].title,
+      //     path: '/products'
+      //   });
+      // })
+      // .catch(err => console.log(err));
+  } else if (config.environment.dbType === config.environment.DB_MONGODB ||
+             config.environment.dbType === config.environment.DB_MONGOOSE) {
       Product.findById(prodId)
       .then(product => {
         if (config.environment.dbType === config.environment.DB_MONGOOSE) {
@@ -181,35 +187,37 @@ exports.getProduct = (req, res, next) => {
           path: '/products'      
         });
       })
-      .catch(error => {
-        console.log('getProduct: error:', error);
-        res.status(500).json({
-          message: "getProduct failed!",
-          error: error
-        });
+      .catch(err => {
+        console.log('getProduct: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
       });
-    } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
-      config.environment.dbType === config.environment.DB_JSONDB) {
-      Product.findById(prodId)
-      .then((result) => {
-        console.log(result.data);
-        const product = result.data;
-        res.render('shop/product-detail', {
-          product: product,
-          pageTitle: product.title,
-          path: '/products'
-        });
-      })
-      .catch(error => {
-        console.log('getProduct: error:', error);
-        res.status(500).json({
-          message: "getProduct failed!",
-          error: error
-        });
+  } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
+             config.environment.dbType === config.environment.DB_JSONDB) {
+    Product.findById(prodId)
+    .then((result) => {
+      console.log(result.data);
+      const product = result.data;
+      res.render('shop/product-detail', {
+        product: product,
+        pageTitle: product.title,
+        path: '/products'
       });
-    } else {
-      console.log('getProduct: request dbtype:"' + config.environment.dbType + '" not supported');
-    }
+    })
+    .catch(err => {
+      console.log('getProduct: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
+  } else {
+    const err = 'getProduct: request dbtype:"' + config.environment.dbType + '" not supported';
+    console.log('getProduct: error:', err);
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
+  }
 };
 
 exports.getIndex = (req, res, next) => {
@@ -232,12 +240,11 @@ exports.getIndex = (req, res, next) => {
         path: '/'
       });
     })
-    .catch(error => {
-      console.log('getIndex: error:', error);
-      res.status(500).json({
-        message: "getIndex failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getIndex: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     Product.find()
@@ -270,12 +277,11 @@ exports.getIndex = (req, res, next) => {
         path: '/'
       });
     })
-    .catch(error => {
-      console.log('getIndex: error:', error);
-      res.status(500).json({
-        message: "getIndex failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getIndex: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_MYSQL) {
     Product.fetchAll()
@@ -286,12 +292,11 @@ exports.getIndex = (req, res, next) => {
         path: '/'
       });
     })
-    .catch(error => {
-      console.log('getIndex: error:', error);
-      res.status(500).json({
-        message: "getIndex failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getIndex: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_SQLZ) {
     Product.findAll()
@@ -303,15 +308,18 @@ exports.getIndex = (req, res, next) => {
         path: '/'
       });
     })
-    .catch(error => {
-      console.log('getIndex: error:', error);
-      res.status(500).json({
-        message: "getIndex failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getIndex: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else {
-    console.log('getIndexProduct: request dbtype:"' + config.environment.dbType + '" not supported');
+    const err = 'getIndexProduct: request dbtype:"' + config.environment.dbType + '" not supported';
+    console.log(err);
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   } 
 };
 
@@ -332,10 +340,20 @@ exports.getCart = (req, res, next) => {
             products: products
           });
         })
-        .catch(err => console.log(err));
-    })
-    .catch(err => console.log(err));
-  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+        .catch(err => {
+          console.log('getCart: error:', err);
+          const error = new Error(err);
+          error.httpStatusCode = 500;
+          return next(error);
+        });
+      })
+      .catch(err => {
+        console.log('getCart: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
+} else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     console.log('shop.getCart:req.user:', req.user);
     const user = req.user; // new User(req.user);  // the mongoose object retains all its functions
     user.getCart()
@@ -359,12 +377,11 @@ exports.getCart = (req, res, next) => {
         });
       })
     })
-    .catch(error => {
-      console.log('getCart: error:', error);
-      res.status(500).json({
-        message: "getCart failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('getCart: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
 
   } else if (config.environment.dbType === config.environment.DB_MOCKDB ||
@@ -405,13 +422,12 @@ exports.getCart = (req, res, next) => {
           }  
         }) 
       })
-    .catch(error => {
-      console.log('getCart: error:', error);
-      res.status(500).json({
-        message: "getCart failed!",
-        error: error
+      .catch(err => {
+        console.log('getCart: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
       });
-    });
   } else if (config.environment.dbType === config.environment.DB_FILEDB) {
     Cart.getCart((cart, err1) => {
       if (cart) {
@@ -436,18 +452,16 @@ exports.getCart = (req, res, next) => {
             });
           } else {
             console.log('getCart: error:', err2);
-            res.status(500).json({
-              message: "getCart failed!",
-              error: error
-            });
+            const error = new Error(err2);
+            error.httpStatusCode = 500;
+            return next(error);
           }
         });
       } else {
         console.log('getCart: error:', err1);
-        res.status(500).json({
-          message: "getCart failed!",
-          error: error
-        });
+        const error = new Error(err1);
+        error.httpStatusCode = 500;
+        return next(error);
       }
     });
   } else {
@@ -476,12 +490,11 @@ exports.postCart = (req, res, next) => {
         res.redirect('/cart');
       });
     })
-    .catch(error => {
-      console.log('postCart: error:', error);
-      res.status(500).json({
-        message: "postCart failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('postCart: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     console.log('postCart:', req.user, 'product:', req.body);
@@ -498,12 +511,11 @@ exports.postCart = (req, res, next) => {
         res.redirect('/cart');
       });
     })
-    .catch(error => {
-      console.log('postCart: error:', error);
-      res.status(500).json({
-        message: "postCart failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('postCart: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_SQLZ) {
     const prodId = req.body.productId;
@@ -536,11 +548,18 @@ exports.postCart = (req, res, next) => {
       .then(() => {
         res.redirect('/cart');
       })
-      .catch(err => console.log(err));
-    } else {
+      .catch(err => {
+        console.log('postCart: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
+  } else {
     const eMsg = 'postCart: request dbtype:"' + config.environment.dbType + '" not supported';
     console.log(eMsg);
-    return Promise.resolve({ error: eMsg});
+    const error = new Error(eMsg);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -566,21 +585,19 @@ exports.postCartDeleteProduct = (req, res, next) => {
           console.log(result);
           res.redirect('/cart');
         })
-        .catch(error => {
-          console.log('postCartDeleteProduct: error:', error);
-          res.status(500).json({
-            message: "postCartDeleteProduct failed!",
-            error: error
-          });
-        });  
+        .catch(err => {
+          console.log('postCartDeleteProduct: error:', err);
+          const error = new Error(err);
+          error.httpStatusCode = 500;
+          return next(error);
+        });
       });
     })
-    .catch(error => {
-      console.log('postCartDeleteProduct: error:', error);
-      res.status(500).json({
-        message: "postCartDeleteProduct failed!",
-        error: error
-      });
+    .catch(err => {
+      console.log('postCartDeleteProduct: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     console.log('postCartDeleteProduct', req.body.productId);
@@ -591,14 +608,13 @@ exports.postCartDeleteProduct = (req, res, next) => {
       .then(result => {
         res.redirect('/cart');
       })
-      .catch(error => {
-        console.log('postCartDeleteProduct: error:', error);
-        res.status(500).json({
-          message: "postCartDeleteProduct failed!",
-          error: error
-        });
+      .catch(err => {
+        console.log('postCartDeleteProduct: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
       });
-    } else if (config.environment.dbType === config.environment.DB_SQLZ) {
+  } else if (config.environment.dbType === config.environment.DB_SQLZ) {
     const prodId = req.body.productId;
     req.user
       .getCart()
@@ -613,18 +629,19 @@ exports.postCartDeleteProduct = (req, res, next) => {
       .then(result => {
         res.redirect('/cart');
       })
-      .catch(error => {
-        console.log('postCartDeleteProduct: error:', error);
-        res.status(500).json({
-          message: "postCartDeleteProduct failed!",
-          error: error
-        });
+      .catch(err => {
+        console.log('postCartDeleteProduct: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
       });
   } else {
     const eMsg = 'postCartDeleteProduct: request dbtype:"' + config.environment.dbType + '" not supported';
     console.log(eMsg);
-    return Promise.resolve({ error: eMsg});
-  }  
+    const error = new Error(eMsg);
+    error.httpStatusCode = 500;
+    return next(error);
+}  
 };
 
 exports.postOrder = (req, res, next) => {
@@ -645,7 +662,12 @@ exports.postOrder = (req, res, next) => {
     .then(result => {
       res.redirect('/orders');
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      console.log('postOrder: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.getOrders = (req, res, next) => {
@@ -724,7 +746,12 @@ exports.getOrders = (req, res, next) => {
         orders: realOrders
       });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      console.log('getOrders: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     realUser = new User(req.user);
     return realUser.getOrders()     // includes product data via populate)
@@ -736,17 +763,18 @@ exports.getOrders = (req, res, next) => {
         orders: result
       });
     })
-    .catch(error => {
-      console.log('shop.getOrders: error:', error);
-      res.status(500).json({
-        message: "shop.getOrders failed!",
-        error: error
-      });
-    })
+    .catch(err => {
+      console.log('getOrders: error:', err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
   } else {
     const eMsg = 'postCartDeleteProduct: request dbtype:"' + config.environment.dbType + '" not supported';
     console.log(eMsg);
-    return Promise.resolve({ error: eMsg});
+    const error = new Error(eMsg);
+    error.httpStatusCode = 500;
+    return next(error);
   }  
 
 };

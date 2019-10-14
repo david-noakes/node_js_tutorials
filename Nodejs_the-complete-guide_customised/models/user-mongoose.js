@@ -21,7 +21,9 @@ const userSchema = new Schema({
   },
   isAdmin: {
     type: Boolean
-  }
+  },
+  resetToken: String,
+  resetTokenExpiration: Date
 });
 
 userSchema.statics.getByEmail = function(email) {
@@ -81,7 +83,7 @@ userSchema.methods.getCart = function() {
     if (cart && cart._id) {
       return cart;
     } else {
-      return Cart.createCart(this._id);
+      return this.createCart();
     }
   })
   .catch(err => {console.log('user.getCart:error:', err); return err;})
@@ -144,18 +146,17 @@ userSchema.methods.addOrder = function() {
     // return Order.getOrders(this._id.toString());
   }
 
-// userSchema.methods.createCart = function() {
-//   let cart = new Cart({
-//     userId: this._id,
-//     products: [],
-//     totalPrice: 0
-//   });
-//   return cart.save()
-//   .then(result => {
-//     console.log('user:createCart:result:ops:', result.ops);
-//     cart._id = result.ops.insertedId;
-//     return cart;
-//   }); 
-// }
+userSchema.methods.createCart = function() {
+  let cart = new Cart({
+    userId: this._id,
+    products: [],
+    totalPrice: 0
+  });
+  return cart.save()
+  .then(result => {
+    console.log('user:createCart:result:', result);
+    return result;
+  }); 
+}
 
 module.exports = mongoose.model('User', userSchema);

@@ -36,6 +36,8 @@ module.exports = class User {
     if (isAdmin) {
       this.isAdmin = isAdmin === true;
     }
+    // resetToken: String,
+    // resetTokenExpiration: Date,
   }
 
   static factory(fetchedUser) {
@@ -52,6 +54,11 @@ module.exports = class User {
     return u;
   }
 
+  withResetToken(tkn, exp) {
+    resetToken = tkn;
+    resetTokenExpiration = exp;
+    return this;
+  }
   create() {
     if (config.environment.dbType === config.environment.DB_MONGODB) {
       const db = getDb();
@@ -126,8 +133,11 @@ module.exports = class User {
         .findOne({ email: email })
         .then(user => {
           console.log('user.getByEmail:found:', user);
-          const newUser = User.factory(user);
-          return newUser;
+          if (user) {
+            return User.factory(user);
+          } else {
+            return user;  // will be null
+          }
         })
         .catch(err => {
           console.log(err);
@@ -138,8 +148,9 @@ module.exports = class User {
       return axios.get(usersUrl + '?email=' + email)
       .then(result => {
         console.log(result);
-        const newUser = User.factory(result.body.data);
-        result.body.data = newUser;
+        if (result.body.data) {
+          result.body.data = User.factory(user);
+        }
         return result;
       });
     } else if (config.environment.dbType === config.environment.DB_FILEDB) {
