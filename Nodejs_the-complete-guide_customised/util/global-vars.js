@@ -4,6 +4,8 @@ var JWT_token;  // holds JWT
 
 var JWT_Secret_Sign = "QhdsRlbwJbdajNxvHRNOpoRFnKs2wOoDU1B8ueENmAY2Y7";
 
+var imageStorePath;
+
 var mongoDBConstants = {
   MONGO_ATLAS_USER: 'ndj4096-a',
   MONGO_ATLAS_PW: 'Ndj%24%240519zxq',
@@ -137,6 +139,7 @@ module.exports = {
   putSessionData: putSessionData,
   JWT_token: JWT_token,
   JWT_Key: JWT_Secret_Sign,
+  imageStorePath: imageStorePath,
   fbConstants: fbConstants,
   MONGO_ATLAS_PW: mongoDBConstants.MONGO_ATLAS_PW,
   MONGO_Config: mongoDBConstants,

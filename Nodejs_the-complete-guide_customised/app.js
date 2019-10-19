@@ -16,9 +16,11 @@ if (config.environment.dbType === config.environment.DB_MONGODB) {
 const mongoose = require('mongoose');
 const mysqldb = require('./util/database-mysql2');
 const path = require('path');
+const pathUtil = require('./util/path-util');
 const sequelize = require('./util/database-sqlz');
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
+const useMulter = require("./middleware/multer-util");
 const uuidTools = require('./util/uuid-tools');
 
 let Cart;
@@ -75,20 +77,16 @@ if (config.environment.dbType === config.environment.DB_FILEDB) {
   mockdb.initDB();
 }
 
-if (config.environment.dbType === config.environment.DB_MYSQL) {
-  // mysqldb.execute('SELECT * FROM products')
-  // .then(result => {
-  //   console.log(result[0], result[1]);
-  // })
-  // .catch(err => {
-  //   console.log(err);
-  // });
-}
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use("/images", express.static(path.join("images")));
+// app.use("/images", express.static(path.join("images")));
+globalVars.imageStorePath = path.join(pathUtil.mainDir, './images');
+app.use("/images", express.static(globalVars.imageStorePath));
+console.log("image store:", globalVars.imageStorePath);
+// app.use(multer({ storage: fileStorage }).single('image'));
+app.use(useMulter);
+
 app.use(
   session({
     secret: globalVars.JWT_Key, 
@@ -220,7 +218,8 @@ app.use(errorController.get404);
 app.use((error, req, res, next) => {
   // res.status(error.httpStatusCode).render(...);
   globalVars.putSessionData(req, 'error', error.message);
-  res.redirect('/500');
+  //res.redirect('/500');
+  errorController.get500(req, res, next);
 });
 
 if (config.environment.dbType === config.environment.DB_SQLZ) {

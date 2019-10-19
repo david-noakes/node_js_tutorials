@@ -1,6 +1,9 @@
 const { check, validationResult } = require('express-validator');  // nextgen destructuring
-
+// const fs = require('fs');
+const fUtil = require('../util/file-util');
 const globals = require('../util/global-vars');
+// const path = require('path');
+// const pathUtil = require('../util/path-util');
 
 let Cart;
 let mongoose;
@@ -45,11 +48,27 @@ exports.postAddProduct = (req, res, next) => {
 
   console.log('req.body:', req.body, 'req.user:', req.user);
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  // const imageUrl = req.body.imageUrl;
+  const image = req.file;
   const price = req.body.price;
   const description = req.body.description;
   const createDate = globals.dateString();
   const userId  = req.user.id;
+  if (!image) {
+    return res.status(422).render('admin/edit-product', {
+      pageTitle: 'Add Product',
+      path: '/admin/add-product',
+      editing: false,
+      hasError: true,
+      product: {
+        title: title,
+        price: price,
+        description: description
+      },
+      errorMessage: 'Attached file is not an image (png, jpg, gif).',
+      validationErrors: []
+    });
+  }
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -70,11 +89,17 @@ exports.postAddProduct = (req, res, next) => {
     });
   }
 
+  const url = req.protocol + '://' + req.get('host');
+  // const imageUrl = image.path;  // this is the entire path on the file system
+  const imageUrl = url + '/images/' + image.filename;
+  console.log(imageUrl);
+
   let product;
   if (config.environment.dbType === config.environment.DB_SQLZ) {
     product = new Product(null, title, imageUrl, description, price, userId);
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     product = new Product({
+      // _id: new mongoose.Types.ObjectId('5d9e9eb2ca1d7d1c4c4d4ca7'),  //** deliberate duplicate key error */
       title: title,
       price: price,
       description: description,
@@ -489,6 +514,7 @@ exports.postDeleteProduct = (req, res, next) => {
   console.log('postDeleteProduct', req.body);
   const prodId = req.body.productId;
   const prodPrice = req.body.productPrice;
+  let imageToDelete = req.body.imageUrl;
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.deleteById(prodId, (result, error) => {
     if (error) {
@@ -502,6 +528,7 @@ exports.postDeleteProduct = (req, res, next) => {
       if (result.n > 0) {
         // Product.deleteImage(product.id.imageToDelete);
         // Cart.deleteProduct(data.id.id, data.id.price);
+        fUtil.deleteImage(imageToDelete);
         res.status(200).redirect("/admin/products");
       } else {
         res.status(401).json({ message: "Not authorized!" });
@@ -518,6 +545,7 @@ exports.postDeleteProduct = (req, res, next) => {
       console.log('DESTROYED PRODUCT');
         // Product.deleteImage(product.id.imageToDelete);
         // Cart.deleteProduct(data.id.id, data.id.price);
+        fUtil.deleteImage(imageToDelete);
         res.status(200).redirect("/admin/products");
     })
     .catch(err => {
@@ -534,6 +562,7 @@ exports.postDeleteProduct = (req, res, next) => {
       if (result.affectedRows > 0) {
         // Product.deleteImage(product.id.imageToDelete);
         // Cart.deleteProduct(data.id.id, data.id.price);
+        fUtil.deleteImage(imageToDelete);
         res.status(200).redirect("/admin/products");
       } else {
         res.status(401).json({ message: "Not authorized!" });
@@ -548,6 +577,7 @@ exports.postDeleteProduct = (req, res, next) => {
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     Product.deleteOne({ _id: prodId, userId: req.user._id })
     .then(result => {
+      fUtil.deleteImage(imageToDelete);
       return Cart.find();
     })
     .then(fetchedCarts => {
@@ -576,6 +606,7 @@ exports.postDeleteProduct = (req, res, next) => {
              config.environment.dbType === config.environment.DB_MONGODB) {
     Product.deleteById(prodId)
     .then(result => {
+      fUtil.deleteImage(imageToDelete);
       return Cart.fetchAll();
     })
     .then(fetchedCarts => {
@@ -609,7 +640,9 @@ exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
   const updatedTitle = req.body.title;
   const updatedPrice = req.body.price;
-  const updatedImageUrl = req.body.imageUrl;
+  let updatedImageUrl = req.body.imageUrl;  // this could change
+  let imageToDelete;
+  const image = req.file;
   const updatedDesc = req.body.description;
   const createDate = req.body.productCreateDate;
   const errors = validationResult(req);
@@ -632,6 +665,14 @@ exports.postEditProduct = (req, res, next) => {
       validationErrors: errors.array()
     });
   }
+
+  if (image) {
+    const url = req.protocol + '://' + req.get('host');
+    // const imageUrl = image.path;  // this is the entire path on the file system
+    imageToDelete = req.body.imageUrl;
+    updatedImageUrl = url + '/images/' + image.filename;
+  }
+  console.log('editProduct:imageURL:' , updatedImageUrl);
 
   let updatedProduct;
   if (config.environment.dbType === config.environment.DB_FILEDB || 
@@ -658,6 +699,7 @@ exports.postEditProduct = (req, res, next) => {
       });
     } else {
       console.log(result);
+      fUtil.deleteImage(imageToDelete);
       res.status(200).redirect("/admin/products");
     }
   });
@@ -673,6 +715,7 @@ exports.postEditProduct = (req, res, next) => {
     })
     .then(result => {
       console.log('UPDATED PRODUCT!');
+      fUtil.deleteImage(imageToDelete);
       res.status(201).redirect("/admin/products");
     })
     .catch(err => {
@@ -689,6 +732,7 @@ exports.postEditProduct = (req, res, next) => {
     updatedProduct.update()
       .then(result => {
         console.log(result);
+        fUtil.deleteImage(imageToDelete);
         res.status(201).redirect("/admin/products");
       })
       .catch(err => {
@@ -706,10 +750,14 @@ exports.postEditProduct = (req, res, next) => {
           product.title = updatedTitle;
           product.price = updatedPrice;
           product.description = updatedDesc;
-          product.imageUrl = updatedImageUrl;
+          // product.imageUrl = updatedImageUrl;
+          if (image) {
+            product.imageUrl = updatedImageUrl;
+          }
           product.modifyDate = globals.dateString();
           return product.save().then(result => {
             console.log('UPDATED PRODUCT!');
+            fUtil.deleteImage(imageToDelete);
             res.redirect('/admin/products');
           });
         })

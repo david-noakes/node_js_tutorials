@@ -1,3 +1,8 @@
+const fs = require('fs');
+const path = require('path');
+const pathUtil = require('../util/path-util');
+const PDFDocument = require('pdfkit');
+
 let Cart;
 let Cartitem;
 let Order;
@@ -12,6 +17,7 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   User = require('../models/user-sqlize');
 } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
   Cart = require('../models/cart-mongoose');
+  Order = require('../models/order-mongoose');
   Product = require('../models/product-mongoose');
   User = require('../models/user-mongoose');
 } else {
@@ -641,7 +647,7 @@ exports.postCartDeleteProduct = (req, res, next) => {
     const error = new Error(eMsg);
     error.httpStatusCode = 500;
     return next(error);
-}  
+  }  
 };
 
 exports.postOrder = (req, res, next) => {
@@ -785,4 +791,82 @@ exports.getCheckout = (req, res, next) => {
     path: '/checkout',
     pageTitle: 'Checkout'
   });
+};
+
+exports.getInvoice = (req, res, next) => {
+  const orderId = req.params.orderId;
+  console.log('getInvoice:', orderId, 'req.user:', req.user);
+  Order.findById(orderId)
+    .then(order => {
+      if (!order) {
+        return next(new Error('No order found.'));
+      }
+      if (order.userId.toString() !== req.user._id.toString()) {
+        return next(new Error('Unauthorized'));
+      }
+      const invoiceName = 'invoice-' + orderId + '.pdf';
+      // const invoicePath = path.join('data', 'invoices', invoiceName);
+      const invoicePath = path.join(pathUtil.mainDir, 'data', 'invoices', invoiceName);
+
+      console.log('invoicePath:', invoicePath);
+      // ** generate the file
+      const pdfDoc = new PDFDocument();
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        'inline; filename="' + invoiceName + '"'
+      );
+      pdfDoc.pipe(fs.createWriteStream(invoicePath));
+      pdfDoc.pipe(res);
+
+      pdfDoc.fontSize(26).text('Invoice: ' + orderId, {
+        underline: true
+      });
+      pdfDoc.text('      ');
+      let totalPrice = 0;
+      order.items.forEach(prod => {
+        totalPrice += prod.qty * prod.price;
+        pdfDoc
+          .fontSize(14)
+          .text(
+            prod.title +
+              ' - ' +
+              prod.qty +
+              ' x ' +
+              '$' +
+              prod.price +
+              ' = ' +
+              prod.qty * prod.price
+          );
+      });
+      pdfDoc.text('---------------------------');
+      pdfDoc.fontSize(20).text('Total Price: $' + totalPrice);
+
+      pdfDoc.end();
+
+      // ** serve the file as a stream
+      // const file = fs.createReadStream(invoicePath);
+      // res.setHeader('Content-Type', 'application/pdf');
+      // res.setHeader(
+      //   'Content-Disposition',
+      //   'inline; filename="' + invoiceName + '"'
+      // );
+      // file.pipe(res);
+
+      // ** serve the file as a complete entity
+      // fs.readFile(invoicePath, (err, data) => {
+      //   if (err) {
+      //     console.log('file read error:', req.user);
+      //     return next(err);
+      //   }
+      //   // console.log('getInvoice: sending.');
+      //   res.setHeader('Content-Type', 'application/pdf');
+      //   res.setHeader(
+      //     'Content-Disposition',
+      //     'inline; filename="' + invoiceName + '"'
+      //   );
+      //   res.send(data);
+      // });
+    })
+    .catch(err => {console.log(err); next(err)});
 };

@@ -23,7 +23,7 @@ router.post(
         .trim()
         .isLength({ min: 3 })
         .withMessage('Please enter at least 3 characters.'),
-      body('imageUrl').isURL().withMessage('is not a valid URL'),
+      // body('imageUrl').isURL().withMessage('is not a valid URL'),
       body('price').isFloat({ min: 0.00 }).withMessage('not a valid positive number, no more than 2 decimal places.'),
       body('description')
       .trim()
@@ -46,7 +46,7 @@ router.post(
           .trim()
           .isLength({ min: 3 })
           .withMessage('Please enter at least 3 characters.'),
-        body('imageUrl').isURL().withMessage('is not a valid URL'),
+        // body('imageUrl').isURL().withMessage('is not a valid URL'),
         body('price').isFloat().withMessage('not a valid positive number, no more than 2 decimal places.'),
         body('description')
         .trim()
