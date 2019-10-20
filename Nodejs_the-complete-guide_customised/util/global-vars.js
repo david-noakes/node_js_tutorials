@@ -1,16 +1,17 @@
 const dateFormat = require('dateformat');
+const keys = require('../../../../keystore');
+
+const JWT_Key = keys.JWT_Secret_Sign;
+const fbConstants = keys.fbConstants;
+const MONGO_ATLAS_PW = keys.MONGO_ATLAS_PW;
+const MONGO_Config = keys.mongoDBConstants;
+const sendGrid = keys.sendGrid;
 
 var JWT_token;  // holds JWT
 
 var imageStorePath;
 
-// firebase
-
-// firebase.initializeApp(fbconfig);
-  // Get a reference to the database service
-var fbDatabase; // = firebase.database();
 var token;
-
 
 function dateString(d) {
   let x = d;
@@ -100,4 +101,9 @@ module.exports = {
   pullSessionData: pullSessionData,
   putSessionData: putSessionData,
   imageStorePath: imageStorePath,
+  JWT_token: JWT_token,
+  JWT_Key: keys.JWT_Key,
+  fbConstants: keys.fbConstants,
+  MONGO_Config: keys.MONGO_Config,
+  sendGrid: keys.sendGrid
 }
