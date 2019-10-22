@@ -8,3 +8,4 @@ node_modules
 /FileSystemDemo/*.sublime-workspace
 angular
 libs
+/Nodejs_the-complete-guide_customised/util/global-vars - Copy.js
