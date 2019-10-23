@@ -48,12 +48,12 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   User = require('./models/user-model');
 }
 
-console.log(
-  'JWT_Key:', globalVars.JWT_Key,
-  'fbConstants:', globalVars.fbConstants,
-  'MONGO_Config:', globalVars.MONGO_Config,
-  'sendGrid:', globalVars.sendGrid
-);
+// console.log(
+//   'JWT_Key:', globalVars.JWT_Key,
+//   'fbConstants:', globalVars.fbConstants,
+//   'MONGO_Config:', globalVars.MONGO_Config,
+//   'sendGrid:', globalVars.sendGrid
+// );
 const app = express();
 const mdbStore = new MongoDBStore({
   uri: globalVars.MONGO_Config.MONGO_LOCAL_NODEJS_COURSE_DB,

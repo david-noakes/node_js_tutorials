@@ -28,8 +28,13 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
 }
 const uuidTools = require('../util/uuid-tools');
 
+const ITEMS_PER_PAGE = 3;
+
+
 exports.getProducts = (req, res, next) => {
   const userName = req.session.userEmail;
+  const page = +req.query.page || 1;
+  let totalItems;
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.fetchAll(products => {
       // console.log("prods:", products);
@@ -57,25 +62,32 @@ exports.getProducts = (req, res, next) => {
     });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     Product.find()
-    .then(products => {
-      const p = products.map(product => {
-        product.id = product._id;
-        return product;
+      .countDocuments()
+      .then(numProducts => {
+        totalItems = numProducts;
+        return Product.find()
+          .skip((page - 1) * ITEMS_PER_PAGE)
+          .limit(ITEMS_PER_PAGE);
+      })
+      .then(products => {
+        res.render('shop/product-list', {
+          prods: products,
+          pageTitle: 'Products',
+          path: '/products',
+          currentPage: page,
+          hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+          hasPreviousPage: page > 1,
+          nextPage: page + 1,
+          previousPage: page - 1,
+          lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE)
+        });
+      })
+      .catch(err => {
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
       });
-      const isLoggedIn = (req.session && req.session.isLoggedIn === true)
-      res.render('shop/product-list', {
-        prods: p,
-        pageTitle: 'All Products',
-        path: '/products'
-      });
-    })
-    .catch(err => {
-      console.log('getProducts: error:', err);
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
+    } else if (config.environment.dbType === config.environment.DB_MONGODB) {
     Product.fetchAll()
     .then(result => {
       res.render('shop/product-list', {
@@ -228,6 +240,9 @@ exports.getProduct = (req, res, next) => {
 
 exports.getIndex = (req, res, next) => {
   const userName = req.session.userEmail;
+  const page = +req.query.page || 1;
+  let totalItems;
+
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.fetchAll(products => {
       return res.render('shop/index', {
@@ -254,6 +269,13 @@ exports.getIndex = (req, res, next) => {
     });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     Product.find()
+    .countDocuments()
+    .then(numProducts => {
+      totalItems = numProducts;
+      return Product.find()
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE)
+    })
     .then(products => {
       const p = products.map(product => {
         product.id = product._id;
@@ -262,7 +284,13 @@ exports.getIndex = (req, res, next) => {
       res.render('shop/index', {
         prods: p,
         pageTitle: 'Shop',
-        path: '/'
+        path: '/',
+        currentPage: page,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE)
       });
     })
     .catch(error => {
