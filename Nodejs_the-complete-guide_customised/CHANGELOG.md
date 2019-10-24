@@ -1,3 +1,17 @@
+# Version 1.22.0 (2019-10-24)
+
+## Features
+* modify changelog for multiline comments
+ ([0eba7c](https://github.com/jackyef/changelog-generator/commit/0eba7c750b5e7f16461f9645438618b16f4fea68))
+
+## Chores
+* move keystore.js into assets folder (and private git repo)
+ ([2507c2](https://github.com/jackyef/changelog-generator/commit/2507c2f345b4338dc9d26a71acc57c49cbd52d07))
+
+## Sections
+* finished Section 22: understanding async requests
+ 20191024  ([2c8689](https://github.com/jackyef/changelog-generator/commit/2c8689b9a9924beb3925e8fd27563ed4ab8449b2))
+
 # Version 1.21.0 (2019-10-23)
 
 ## Features
