@@ -517,24 +517,24 @@ exports.postDeleteProduct = (req, res, next) => {
   let imageToDelete = req.body.imageUrl;
   if (config.environment.dbType === config.environment.DB_FILEDB) {
     Product.deleteById(prodId, (result, error) => {
-    if (error) {
-      console.log('postDeleteProduct: error:', error);
-      res.status(500).json({
-        message: "Deleting product failed!",
-        error: error
-      });
-    } else {  // the whole deleted item is returned - allow chaining of deletes
-      console.log(result);
-      if (result.n > 0) {
-        // Product.deleteImage(product.id.imageToDelete);
-        // Cart.deleteProduct(data.id.id, data.id.price);
-        fUtil.deleteImage(imageToDelete);
-        res.status(200).redirect("/admin/products");
-      } else {
-        res.status(401).json({ message: "Not authorized!" });
+      if (error) {
+        console.log('postDeleteProduct: error:', error);
+        res.status(500).json({
+          message: "Deleting product failed!",
+          error: error
+        });
+      } else {  // the whole deleted item is returned - allow chaining of deletes
+        console.log(result);
+        if (result.n > 0) {
+          // Product.deleteImage(product.id.imageToDelete);
+          // Cart.deleteProduct(data.id.id, data.id.price);
+          fUtil.deleteImage(imageToDelete);
+          res.status(200).redirect("/admin/products");
+        } else {
+          res.status(401).json({ message: "Not authorized!" });
+        }
       }
-    }
-  });
+    });
   } else if (config.environment.dbType === config.environment.DB_SQLZ) {
     Product.findByPk(prodId)
     .then(product => {
@@ -632,6 +632,75 @@ exports.postDeleteProduct = (req, res, next) => {
     const error = new Error(err);
     error.httpStatusCode = 500;
     return next(error);
+  }
+};
+
+exports.deleteProduct = (req, res, next) => {
+  const prodId = req.params.productId;
+  const prodPrice = req.query.prodPrice;
+  const imageToDelete = req.query.imageUrl;
+  console.log('prodId:', prodId, 'prodPrice:', prodPrice, 'imageToDelete:', imageToDelete);
+  if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    Product.deleteOne({ _id: prodId, userId: req.user._id })
+    .then(result => {
+      if (result) {
+        fUtil.deleteImage(imageToDelete);
+        return Cart.find();
+      } else {
+        return null;
+      }
+    })
+    .then(fetchedCarts => {
+      console.log(fetchedCarts);
+      if (fetchedCarts && fetchedCarts.length > 0) {
+        fetchedCarts.forEach(fCart => {
+          console.log('fCart:', fCart);
+          fCart.deleteProduct(prodId, prodPrice).then(xx => {return null})
+        });
+      }
+      console.log('fetchCarts:', fetchedCarts); 
+      return fetchedCarts; 
+    })
+    .then((z) => {
+      if (z) {
+        console.log('DESTROYED PRODUCT');
+        res.status(200).json({ message: 'Success!' });
+      } else {
+        console.log('NOT AUTHORISED');
+        res.status(401).json({ message: 'Not Authorised!' });
+      }
+    })
+    .catch(err => {
+      res.status(500).json({ message: err });
+    });
+  } else if (config.environment.dbType === config.environment.DB_JSONDB || 
+    config.environment.dbType === config.environment.DB_MOCKDB ||
+    config.environment.dbType === config.environment.DB_MONGODB) {
+      Product.deleteById(prodId)
+      .then(result => {
+        fUtil.deleteImage(imageToDelete);
+        return Cart.fetchAll();
+      })
+      .then(fetchedCarts => {
+        let realCart = new Cart('');
+        if (fetchedCarts && fetchedCarts.length > 0) {
+          fetchedCarts.forEach(fCart => {
+            realCart = Cart.factory(fCart);
+            realCart.deleteProduct(prodId, prodPrice).then(xx => {return null})
+          });
+        }
+        console.log('fetchCarts:', fetchedCarts);  
+        res.status(200).json({ message: 'Success!' });
+      })
+      .catch(err => {
+        res.status(500).json({ message: 'Deleting product failed.' });
+      });
+  } else {
+      const err = 'deleteProduct: request dbtype:"' + config.environment.dbType + '" not supported';
+      console.log(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
   }
 };
 
@@ -767,11 +836,12 @@ exports.postEditProduct = (req, res, next) => {
           error.httpStatusCode = 500;
           return next(error);
         });
-    } else {
+  } else {
       const err = 'posttEditProduct: request dbtype:"' + config.environment.dbType + '" not supported';
       console.log('postEditProduct: error:', err);
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
-    }
+  }
 };
+

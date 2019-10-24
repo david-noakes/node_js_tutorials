@@ -70,8 +70,12 @@ exports.getProducts = (req, res, next) => {
           .limit(ITEMS_PER_PAGE);
       })
       .then(products => {
+        const p = products.map(product => {
+          product.id = product._id;
+          return product;
+        });
         res.render('shop/product-list', {
-          prods: products,
+          prods: p,
           pageTitle: 'Products',
           path: '/products',
           currentPage: page,
@@ -89,9 +93,13 @@ exports.getProducts = (req, res, next) => {
       });
     } else if (config.environment.dbType === config.environment.DB_MONGODB) {
     Product.fetchAll()
-    .then(result => {
+    .then(products => {
+      const p = products.map(product => {
+        product.id = product._id;
+        return product;
+      });
       res.render('shop/product-list', {
-        prods: result,
+        prods: p,
         pageTitle: 'All Products',
         path: '/products'
       });
@@ -147,26 +155,26 @@ exports.getProduct = (req, res, next) => {
   if (config.environment.dbType === config.environment.DB_FILEDB) {
   Product.findById(prodId, product => {
     return res.render('shop/product-detail', {
-      product: product,
-      pageTitle: product.title,
-      path: '/products'
-    });
-  });
-  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
-  Product.findById(prodId)
-    .then(([product]) => {
-      res.render('shop/product-detail', {
-        product: product[0],
+        product: product,
         pageTitle: product.title,
         path: '/products'
       });
-    })
-    .catch(err => {
-      console.log('getProduct: error:', err);
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
     });
+  } else if (config.environment.dbType === config.environment.DB_MYSQL) {
+    Product.findById(prodId)
+      .then(([product]) => {
+        res.render('shop/product-detail', {
+          product: product[0],
+          pageTitle: product.title,
+          path: '/products'
+        });
+      })
+      .catch(err => {
+        console.log('getProduct: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
   } else if (config.environment.dbType === config.environment.DB_SQLZL) {
     Product.findByPk(prodId)
       .then( product => {
@@ -253,10 +261,14 @@ exports.getIndex = (req, res, next) => {
     });
   } else if (config.environment.dbType === config.environment.DB_MONGODB) {
     Product.fetchAll()
-    .then(result => {
+    .then(products => {
       // console.log(result);
+      const p = products.map(product => {
+        product.id = product._id;
+        return product;
+      });
       res.render('shop/index', {
-        prods: result,
+        prods: p,
         pageTitle: 'Shop',
         path: '/'
       });
@@ -387,7 +399,7 @@ exports.getCart = (req, res, next) => {
         error.httpStatusCode = 500;
         return next(error);
       });
-} else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     console.log('shop.getCart:req.user:', req.user);
     const user = req.user; // new User(req.user);  // the mongoose object retains all its functions
     user.getCart()
