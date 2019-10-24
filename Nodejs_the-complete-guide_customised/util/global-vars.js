@@ -1,6 +1,6 @@
 const dateFormat = require('dateformat');
-// const keys = require('../../keystore'); // MeanStack_Express
-const keys = require('../../../../keystore');  // Nodejs_course
+// const keys = require('../../assets/keystore'); // MeanStack_Express
+const keys = require('../../../../assets/keystore');  // Nodejs_course
 
 var JWT_token;  // holds JWT
 
