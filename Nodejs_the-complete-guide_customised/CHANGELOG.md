@@ -1,3 +1,9 @@
+# Version 1.23.0 (2019-10-30)
+
+## Sections
+* finish Section 23 Adding Payments
+ 20191030  ([baf32b](https://github.com/jackyef/changelog-generator/commit/baf32be0abd68622352136f676f3ea985b19530e))
+
 # Version 1.22.0 (2019-10-24)
 
 ## Features
