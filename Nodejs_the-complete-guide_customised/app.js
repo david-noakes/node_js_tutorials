@@ -1,10 +1,11 @@
 const bodyParser = require('body-parser');
-
-const config = require('./util/config');
 const csrf = require('csurf');
-const errorController = require('./controllers/error-controller');
 const express = require('express');
 const flash = require('connect-flash');
+
+const isAuth = require('./middleware/is-auth');
+const config = require('./util/config');
+const errorController = require('./controllers/error-controller');
 const globalVars = require('./util/global-vars');
 
 // const expressHandlebars = require('express-handlebars');
@@ -19,7 +20,7 @@ const path = require('path');
 const pathUtil = require('./util/path-util');
 const sequelize = require('./util/database-sqlz');
 const session = require('express-session');
-const MongoDBStore = require('connect-mongodb-session')(session);
+const shopController = require('./controllers/shop-controller');
 const useMulter = require("./middleware/multer-util");
 const uuidTools = require('./util/uuid-tools');
 
@@ -48,13 +49,10 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   User = require('./models/user-model');
 }
 
-// console.log(
-//   'JWT_Key:', globalVars.JWT_Key,
-//   'fbConstants:', globalVars.fbConstants,
-//   'MONGO_Config:', globalVars.MONGO_Config,
-//   'sendGrid:', globalVars.sendGrid
-// );
+
+
 const app = express();
+const MongoDBStore = require('connect-mongodb-session')(session);
 const mdbStore = new MongoDBStore({
   uri: globalVars.MONGO_Config.MONGO_LOCAL_NODEJS_COURSE_DB,
   collection: 'sessions'
@@ -103,6 +101,8 @@ app.use(
   })
 );
 
+app.use(flash());
+
 app.use((req, res, next) => {
   console.log('add CORS headers');
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -117,24 +117,30 @@ app.use((req, res, next) => {
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE' ) {
     console.log('csurf:', req._csrf);
   }
+  if (req.session) {
+    console.log('req.session:', req.session);
+  } else {
+    console.log('*** no session  ***');
+  }
   next();
 });
 
-app.use(csrfProtection);
-app.use(flash());
-
- // put this here so the redirect from the error handler will not loop
-app.get('/500', errorController.get500);
+// put this here so the redirect from the error handler will not loop
+// app.get('/500', errorController.get500);
 
 // get the logged in user
 app.use((req, res, next) => {
-  let userEmail;
+  const userEmail = req.session.userEmail;
+  if (!userEmail) {
+    console.log('No Email:', userEmail);
+    return next();
+  }
   if (config.environment.dbType === config.environment.DB_SQLZ) {
-    User.findAll({where: { email: "ndj@shadowlands.erehwon" }})
+    User.findAll({where: { email: userEmail }})
     .then(users => {
       console.log('logged in user:', users[0]);
       req.user = users[0];
-      next();
+      return next();
     })
     .catch(err => {
       console.log('app.retrieveUser: error:', err);
@@ -143,13 +149,15 @@ app.use((req, res, next) => {
       return next(error);
     });
 
-  } else if (config.environment.dbType === config.environment.DB_MONGODB) {
-    User.getByEmail('ndj@shadowlands.erehwon')
+  } else if (config.environment.dbType === config.environment.DB_MONGODB ||
+             config.environment.dbType === config.environment.DB_JSONDB) {
+    User.getByEmail(userEmail)
     .then(user => {
       // user.id = user._id;
       req.user = User.factory(user);
-      console.log('mongodb: found user:', req.user);
-      next();
+      req.session.user = req.user;
+      console.log('mongodb/jsondb: found user:', req.user);
+      return next();
     })
     .catch(err => {
       console.log('app.retrieveUser: error:', err);
@@ -159,37 +167,31 @@ app.use((req, res, next) => {
     });
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     if (req.session) {  // if the session doesn't exist, we get an error setting it
-      userEmail = req.session.userEmail;
-      const user = req.session.user;
-      console.log('app.use User Email:', userEmail, ', session.user:', user);
-      // session.user is not being retained
-      // also it is not a mongoose object
-      if (!userEmail) {
-        console.log('No Email:', userEmail);
-        next();
-      } else {
-        User.getByEmail(userEmail)
-        .then(fUser => { // logged in getUserByEmail
-          // console.log('findUser:', fUser);
-          req.user = fUser;
-          req.session.user = fUser;
-          console.log('req.user:', req.user);
-          next();
-        })
-        .catch(err => {
-          console.log('app.retrieveUser: error:', err);
-          const error = new Error(err);
-          error.httpStatusCode = 500;
-          return next(error);
-        });
-      } 
+      console.log('app.use User Email:', userEmail, ', session.user:', session.user);
+      User.getByEmail(userEmail)
+      .then(fUser => { // logged in getUserByEmail
+        // console.log('findUser:', fUser);
+        req.user = fUser;
+        req.session.user = fUser;
+        console.log('req.user:', req.user);
+        return next();
+      })
+      .catch(err => {
+        console.log('app.retrieveUser: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
+    } else {
+      console.log('*** no session ***');
     }
   } else {
-    User.getByEmail("ndj@shadowlands.erehwon")
+    User.getByEmail(userEmail)
     .then(result => {
       console.log('logged in user:', result.data[0]);
       req.user = result.data[0];
-      next();
+      req.session.user = req.user;
+      return next();
     })
     .catch(err => {
       console.log('app.retrieveUser: error:', err);
@@ -197,20 +199,34 @@ app.use((req, res, next) => {
       error.httpStatusCode = 500;
       return next(error);
     });
-}
+  }
 });
 
 app.use((req, res, next) => {
-  // res.locals.isAdmin = (req.session && req.session.user && req.session.user.isAdmin);
-  res.locals.userName = req.session.userEmail;
-  res.locals.isAuthenticated = req.session.isLoggedIn;
-  res.locals.isAdmin = (req.user && req.user.isAdmin);
-  res.locals.csrfToken = req.csrfToken();
-  console.log('res.locals:', res.locals);
+  // console.log('res.locals.isAdmin =', (req.session && req.session.user && req.session.user.isAdmin));
+  if (req.session) {
+    res.locals.userName = req.session.userEmail;
+    res.locals.isAuthenticated = req.session.isLoggedIn;
+    res.locals.isAdmin = (req.session.user && req.session.user.isAdmin);
+    console.log('res.locals:', res.locals);
+  } else {
+    res.locals.userName = '';
+    res.locals.isAuthenticated = false;
+    res.locals.isAdmin = false;
+    console.log('no session - res.locals:', res.locals);
+  }
   next();
 });
 
+// this one comes from stripe and has no csrf token
+app.post('/create-order', isAuth, shopController.postOrder);
 
+// put this here so we can process POST requests that will validly come without a csrf token
+app.use(csrfProtection);
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
 
 //app.use('/admin', adminRoutes.routes);  
 app.use('/admin', adminRoutes);
@@ -223,6 +239,7 @@ app.use(errorController.get404);
 // never be reached unless is has error as the first argument
 app.use((error, req, res, next) => {
   // res.status(error.httpStatusCode).render(...);
+  console.log('error500:', error);
   globalVars.putSessionData(req, 'error', error.message);
   //res.redirect('/500');
   errorController.get500(req, res, next);

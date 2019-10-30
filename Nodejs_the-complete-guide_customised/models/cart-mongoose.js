@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const cartSchema = new Schema({
-    userId: {type: String, required: true, ref: 'User'},
+    userId: {type: Schema.Types.ObjectId, required: true, ref: 'User'},
     products: [
         {
         id: {
@@ -72,6 +72,13 @@ cartSchema.methods.deleteProduct = function(id, productPrice) {
   return this.save();
 }
 
+cartSchema.methods.clearCart = function() {
+  this.products = [];
+  this.totalPrice = 0;
+  console.log('clearCart: ', this);
+  return this.save();
+}
+
 cartSchema.statics.getCart = function(userId) {
   console.log('cart-model.getCart:userId:', userId);
   return this
@@ -90,20 +97,6 @@ cartSchema.statics.getCart = function(userId) {
     // })
 }
 
-// cartSchema.statics.createCart = function(id) {
-//   let cart = new Cart({  // ?? cartSchema
-//     userId: id,
-//     products: [],
-//     totalPrice: 0
-//   });
-//   console.log('createCart: new cart:', cart);
-//   cart.save()
-//   .then(result => {
-//     console.log('createCart:result:ops:', result.ops);
-//     cart._id = result.ops.insertedId;
-//     return cart;
-//   }); 
-// }
 
 module.exports = mongoose.model('Cart', cartSchema);
 

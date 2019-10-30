@@ -43,7 +43,7 @@ userSchema.methods.addToCart = function(product) {
   console.log('user.addToCart:product:', product);
   console.log('user.addToCart:user', this);
   // return this.getCart()
-  return Cart.findOne( // {userId: new mongoose.Types.ObjectId(this._id)}
+  return Cart.findOne( {userId: new mongoose.Types.ObjectId(this._id)}
     // {
     // $or: [{userId: this._id},
     //       {userId: this._id.toString()}]
@@ -74,9 +74,9 @@ userSchema.methods.getCart = function() {
   // return Cart.findOne({userId: new mongoose.Types.ObjectId(this._id)})   //new mongoose.Types.ObjectId(this._id))
   return Cart.findOne(
     {
-      $or: [{userId: new mongoose.Types.ObjectId(this._id)},
-          {userId: this._id.toString()}]
-  }
+        $or: [{userId: new mongoose.Types.ObjectId(this._id)},
+            {userId: this._id.toString()}]
+    }
   )
   .then(cart => {
     console.log('user.getCart:', cart);
@@ -142,7 +142,18 @@ userSchema.methods.addOrder = function() {
   userSchema.methods.getOrders = function() {
     console.log('userSchema.getOrders:', this._id);
     return Order
-    .find( { userId: this._id.toString() });
+    .find({userId: this._id});  
+      // the _id will match whatever the schema defines as the type
+      // so if it is string, it will match only strings
+      //    if it is an objectid it will match only object ids
+      // $or: [{userId: this._id},
+      //       {userId: this._id.toString()}
+      //       //{userId: new mongoose.Types.ObjectId(this._id)},            
+      //       // {'userId': this._id},
+      //       // {'userId.toString()': this._id.toString()} //,
+      //       // {'userId': new mongoose.Types.ObjectId(this._id)}
+      //     ]
+      // });
     // return Order.getOrders(this._id.toString());
   }
 

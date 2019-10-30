@@ -1,0 +1,47 @@
+<%- include('../includes/head.ejs') %>
+    <link rel="stylesheet" href="/css/cart.css">
+    
+    </head>
+
+    <body>
+        <%- include('../includes/navigation.ejs') %>
+        <main>
+            <ul class="cart__item-list">
+                <% products.forEach(p => { %>
+                    <li class="cart__item">
+                        <h1><%= p.id.title %></h1>
+                        <h2>Quantity: <%= p.qty %></h2>
+                    </li>
+                <% }) %>
+            </ul>
+            <div class="centered">
+                <h2>Total: <%= totalSum %></h2>
+            </div>
+            <div class="centered">
+                <form action="/create-order" method="POST">
+                    <script
+                      src="https://checkout.stripe.com/checkout.js" class="stripe-button"
+                      data-key="<%= apikey %>"
+                      data-amount="<%= totalSum * 100 %>"
+                      data-name="Your Order"
+                      data-description="All the items you ordered"
+                      data-image="https://stripe.com/img/documentation/checkout/marketplace.png"
+                      data-locale="auto"
+                      data-currency="aud">
+                    </script>
+                  </form>
+                  <!-- <button id="order-btn" class="btn">ORDER</button>
+                  <script src="https://js.stripe.com/v3/"></script>
+                  <script>
+                    var stripe = Stripe("<%= apikey %>");
+                    var orderBtn = document.getElementById('order-btn');
+                    orderBtn.addEventListener('click', function() {
+                        stripe.redirectToCheckout({
+                            sessionId: '< % = sessionId % >'  ** it can't find this var
+                            }).then(function (result) {
+                        });
+                    });
+                  </script> -->
+            </div>
+        </main>
+        <%- include('../includes/end.ejs') %>

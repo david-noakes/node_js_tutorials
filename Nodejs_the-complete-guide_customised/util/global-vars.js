@@ -100,5 +100,6 @@ module.exports = {
   JWT_Key: keys.JWT_Key,
   fbConstants: keys.fbConstants,
   MONGO_Config: keys.MONGO_Config,
-  sendGrid: keys.sendGrid
+  sendGrid: keys.sendGrid,
+  stripeKeys: keys.stripeKeys
 }

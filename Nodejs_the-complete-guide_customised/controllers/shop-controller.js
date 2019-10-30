@@ -1,7 +1,15 @@
+const config = require('../util/config');
 const fs = require('fs');
+const globalVars = require('../util/global-vars');
 const path = require('path');
 const pathUtil = require('../util/path-util');
 const PDFDocument = require('pdfkit');
+const uuidTools = require('../util/uuid-tools');
+
+
+// const stripe = require('stripe')('sk_test_BMD9aaviqJzK0hlROg2KMRbD');
+const stripe = require('stripe')(globalVars.stripeKeys.testSecretKey);
+
 
 let Cart;
 let Cartitem;
@@ -9,7 +17,6 @@ let Order;
 let Product;
 let User;
 
-const config = require('../util/config');
 if (config.environment.dbType === config.environment.DB_SQLZ) {
   Cart = require('../models/cart-sqlize');
   CartItem = require('../models/cart-item-sqlize');
@@ -26,7 +33,6 @@ if (config.environment.dbType === config.environment.DB_SQLZ) {
   Product = require('../models/product-model');
   User = require('../models/user-model');
 }
-const uuidTools = require('../util/uuid-tools');
 
 const ITEMS_PER_PAGE = 3;
 
@@ -690,8 +696,149 @@ exports.postCartDeleteProduct = (req, res, next) => {
   }  
 };
 
-exports.postOrder = (req, res, next) => {
-  const userName = req.session.userEmail;
+// exports.getCheckout = (req, res, next) => {
+//   const userName = req.session.userEmail;
+//   res.render('shop/checkout', {
+//     path: '/checkout',
+//     pageTitle: 'Checkout'
+//   });
+// };
+
+exports.getCheckout = (req, res, next) => {
+  let realUser;
+  let products;
+  let total = 0;
+  if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    realUser = new User(req.user);
+    realUser.getCart() 
+    .then(cart => {
+      cart.populate('products.id')
+      .execPopulate()  // this returns the promise that can go to the then
+      .then( pCart => {
+        console.log('cart.getCheckout:populate', pCart.products);
+        const products = pCart.products;
+        let total = 0;
+        if (products && products.length > 0) {
+          products.forEach(p => {
+            total += p.qty * p.id.price;
+          }) 
+        }
+        // *** this is stripe v3 and is failing to connect, meaning that we can't create an order  
+        //   return stripe.checkout.sessions.create({
+        //     payment_method_types: ['card'],
+        //     line_items: products.map(p => {
+        //       return {
+        //         name: p.id.title,
+        //         description: p.id.description,
+        //         amount: p.id.price * 100,
+        //         currency: 'aud',
+        //         quantity: p.qty
+        //       };
+        //     }),
+        //     success_url: 'http://localhost:3000/checkout/success',
+        //     cancel_url: 'http://localhost:3000/checkout/cancel'
+        //   });
+        // })
+        // .then(session => {
+        //   console.log(session);
+        // console.log('globalVars.stripeKeys.testPublicKey:', globalVars.stripeKeys.testPublicKey);
+        res.render('shop/checkout', {
+          path: '/checkout',
+          pageTitle: 'Checkout',
+          products: products,
+          totalSum: total,
+          apikey: globalVars.stripeKeys.testPublicKey
+          // sessionId: session.id
+        });
+      })
+    })
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
+  } else if (config.environment.dbType === config.environment.DB_JSONDB ||
+    config.environment.dbType === config.environment.DB_MONGODB) {
+      realUser = User.factory(req.user);
+      const user = User.factory(req.user);
+      user.getCart()
+      .then(cart => {
+        Product.fetchAll()
+        .then(products => {
+          const cartProducts = [];
+          if (products) {
+            if (cart.products.length > 0) {
+              let cartProductData;
+              for (product of products) {
+                console.log('product:', product);
+                cartProductData = cart.products.find(p => {
+                  if (config.environment.dbType === config.environment.DB_MONGODB) {
+                    // console.log(p.id+'' === product._id+'', p.id);
+                    return p.id+'' === product._id.toString();
+                  } else {
+                    // console.log(p.id+'' === product.id+'', p.id);
+                    return p.id='' === product.id.toString();
+                  }
+                });
+                if (cartProductData) {
+                  console.log('product:', cartProductData, ' is in cart');
+                  cartProducts.push({ productData: Product.factory(product), qty: cartProductData.qty });
+                }
+              }
+            }
+            
+            let total = 0;
+            if (cartProducts && cartProducts.length > 0) {
+              for (p of cartProducts) {
+                total += p.quantity * p.productId.price;
+              }
+            }
+    
+            // if nothing found, return the empty cartProducts
+            return stripe.checkout.sessions.create({
+              payment_method_types: ['card'],
+              line_items: products.map(p => {
+                return {
+                  name: p.productId.title,
+                  description: p.productId.description,
+                  amount: p.productId.price * 100,
+                  currency: 'usd',
+                  quantity: p.quantity
+                };
+              }),
+              success_url: 'http://localhost:3000/checkout/success',
+              cancel_url: 'http://localhost:3000/checkout/cancel'
+            })
+          }})
+          .then(session => {
+            console.log(session);
+                res.render('shop/checkout', {
+              path: '/checkout',
+              pageTitle: 'Checkout',
+              products: cartProducts,
+              totalSum: total,
+              // apikey: globalVars.stripeKeys.testPublicKey
+              sessionId: session.id
+            }); 
+        }) 
+      })
+      .catch(err => {
+        console.log('getCart: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
+  } else {
+      const eMsg = 'postCartDeleteProduct: request dbtype:"' + config.environment.dbType + '" not supported';
+      console.log(eMsg);
+      const error = new Error(eMsg);
+      error.httpStatusCode = 500;
+      return next(error);
+  }   
+};
+
+exports.getCheckoutSuccess = (req, res, next) => {
+  let totalSum = 0;
   let realUser;
   if (config.environment.dbType === config.environment.DB_JSONDB ||
       config.environment.dbType === config.environment.DB_MONGODB) {
@@ -699,21 +846,152 @@ exports.postOrder = (req, res, next) => {
   } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
     realUser = new User(req.user);
   } else {
-    const eMsg = 'postCartDeleteProduct: request dbtype:"' + config.environment.dbType + '" not supported';
-    console.log(eMsg);
-    return Promise.resolve({ error: eMsg});
+    const eMsg = 'postOrder: request dbtype:"' + config.environment.dbType + '" not supported';
+    const error = new Error(eMsg);
+    error.httpStatusCode = 500;
+    return next(error);
   }  
 
-  return realUser.addOrder()
-    .then(result => {
+
+  if (config.environment.dbType === config.environment.DB_JSONDB ||
+    config.environment.dbType === config.environment.DB_MONGODB) {
+      // fix will be required here  
+    return realUser.addOrder()  // TODO  ***
+      .then(result => {
+        res.redirect('/orders');
+      })
+      .catch(err => {
+        console.log('postOrder: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    let realCart;
+    realUser.getCart() 
+      .then(cart => {
+        realCart = cart;
+        cart.populate('products.id')
+        .execPopulate()  // this returns the promise that can go to the then
+        .then( pCart => {
+          console.log('pCart.populate:', pCart);
+          pCart.products.forEach(p => {
+            totalSum += p.qty * p.id.price;
+            p.id.id = p.id._id;
+          });
+
+          const products = pCart.products.map(i => {
+            // console.log('p->i:', i.id, i.id._doc);
+            return { qty: i.qty,  ...i.id._doc  };
+          });
+          
+          const order = new Order({
+            userName: req.user.name,
+            userId: req.user,
+            items: products,
+            totalPrice: totalSum
+          });
+          console.log('new order:', order);
+          return order.save();
+        })
+      })
+    .then(() => {
+      return realCart.clearCart();
+    })
+    .then(() => {
       res.redirect('/orders');
     })
     .catch(err => {
-      console.log('postOrder: error:', err);
+      const error = new Error(err);
+      console.log(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
+  }   
+};
+
+
+exports.postOrder = (req, res, next) => {
+  // Token is created using Checkout or Elements!
+  // Get the payment token ID submitted by the form:
+  const token = req.body.stripeToken; // Using Express
+  let totalSum = 0;
+  let realUser;
+  if (config.environment.dbType === config.environment.DB_JSONDB ||
+      config.environment.dbType === config.environment.DB_MONGODB) {
+    realUser = User.factory(req.user);
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    realUser = new User(req.user);
+  } else {
+    const eMsg = 'postOrder: request dbtype:"' + config.environment.dbType + '" not supported';
+    const error = new Error(eMsg);
+    error.httpStatusCode = 500;
+    return next(error);
+  }  
+
+  if (config.environment.dbType === config.environment.DB_JSONDB ||
+    config.environment.dbType === config.environment.DB_MONGODB) {
+      // fix will be required here  
+    return realUser.addOrder()  // TODO  ***
+      .then(result => {
+        res.redirect('/orders');
+      })
+      .catch(err => {
+        console.log('postOrder: error:', err);
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
+  } else if (config.environment.dbType === config.environment.DB_MONGOOSE) {
+    let realCart;
+    realUser.getCart() 
+      .then(cart => {
+        realCart = cart;
+        cart.populate('products.id')
+        .execPopulate()  // this returns the promise that can go to the then
+        .then( pCart => {
+          console.log('pCart.populate:', pCart);
+          pCart.products.forEach(p => {
+            totalSum += p.qty * p.id.price;
+            p.id.id = p.id._id;
+          });
+
+          const products = pCart.products.map(i => {
+            // console.log('p->i:', i.id, i.id._doc);
+            return { qty: i.qty,  ...i.id._doc  };
+          });
+          
+          const order = new Order({
+            userName: req.user.name,
+            userId: req.user,
+            items: products,
+            totalPrice: totalSum
+          });
+          console.log('new order:', order);
+          return order.save();
+        })
+        .then(result => {
+          // this sends the request to the stripe server to make the charge
+          // we add metadata to identify the order when 
+          const charge = stripe.charges.create({
+            amount: totalSum * 100,
+            currency: 'aud',
+            description: 'Demo Order',
+            source: token,
+            metadata: { order_id: result._id.toString() }
+          });
+          return realCart.clearCart();
+        })
+        .then(() => {
+          res.redirect('/orders');
+        })
+    })
+    .catch(err => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
     });
+  }
 };
 
 exports.getOrders = (req, res, next) => {
@@ -724,7 +1002,7 @@ exports.getOrders = (req, res, next) => {
     config.environment.dbType === config.environment.DB_MONGODB) {
     realUser = User.factory(req.user);
   // not mongoose, get the product data
-  realUser
+    realUser
     .getOrders()     // {include: ['products']})
     .then(orders => {
       console.log('getOrders:', orders);
@@ -822,15 +1100,6 @@ exports.getOrders = (req, res, next) => {
     error.httpStatusCode = 500;
     return next(error);
   }  
-
-};
-
-exports.getCheckout = (req, res, next) => {
-  const userName = req.session.userEmail;
-  res.render('shop/checkout', {
-    path: '/checkout',
-    pageTitle: 'Checkout'
-  });
 };
 
 exports.getInvoice = (req, res, next) => {
