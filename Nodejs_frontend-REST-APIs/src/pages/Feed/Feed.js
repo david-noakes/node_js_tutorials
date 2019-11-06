@@ -21,6 +21,8 @@ class Feed extends Component {
     editLoading: false
   };
 
+  perPage = 3;
+
   componentDidMount() {
     fetch('URL')
       .then(res => {
@@ -50,7 +52,7 @@ class Feed extends Component {
       page--;
       this.setState({ postPage: page });
     }
-    fetch('http://localhost:8080/feed/posts?page=' + page, {
+    fetch('http://localhost:8080/feed/posts?page=' + page + '&perpage=' + this.perPage, {
       headers: {
         Authorization: 'Bearer ' + this.props.token
       }
@@ -114,6 +116,7 @@ class Feed extends Component {
     this.setState({
       editLoading: true
     });
+    // Set up data (with image!)
     const formData = new FormData();
     formData.append('title', postData.title);
     formData.append('content', postData.content);
@@ -133,6 +136,7 @@ class Feed extends Component {
       }
     })
       .then(res => {
+        console.log('finishEditHandler.fetch:', res);
         if (res.status !== 200 && res.status !== 201) {
           throw new Error('Creating or editing a post failed!');
         }
@@ -154,7 +158,7 @@ class Feed extends Component {
               p => p._id === prevState.editPost._id
             );
             updatedPosts[postIndex] = post;
-          } else if (prevState.posts.length < 2) {
+          } else if (prevState.posts.length < this.perPage) {
             updatedPosts = prevState.posts.concat(post);
           }
           return {
@@ -258,7 +262,7 @@ class Feed extends Component {
             <Paginator
               onPrevious={this.loadPosts.bind(this, 'previous')}
               onNext={this.loadPosts.bind(this, 'next')}
-              lastPage={Math.ceil(this.state.totalPosts / 2)}
+              lastPage={Math.ceil(this.state.totalPosts / this.perPage)}
               currentPage={this.state.postPage}
             >
               {this.state.posts.map(post => (

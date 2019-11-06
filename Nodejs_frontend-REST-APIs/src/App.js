@@ -59,6 +59,7 @@ class App extends Component {
   loginHandler = (event, authData) => {
     event.preventDefault();
     this.setState({ authLoading: true });
+    let resStatus = 0;
     fetch('http://localhost:8080/auth/login', {
       method: 'POST',
       headers: {
@@ -70,14 +71,24 @@ class App extends Component {
       })
     })
       .then(res => {
-        if (res.status === 422) {
-          throw new Error('Validation failed.');
-        }
-        if (res.status !== 200 && res.status !== 201) {
-          console.log('Error!');
-          throw new Error('Could not authenticate you!');
-        }
+        resStatus = res.status;  // we lose the status when we parse the body
         return res.json();
+      })
+      .then(resData => {
+        console.log('resData:', resData);
+        console.log('resData.body:', resData.body);
+        console.log('resStatus:', resStatus);
+        console.log('resData.responseData:', resData.responseData);
+        if (resStatus === 422) {
+          // console.log('res:', res);
+          throw new Error('Validation failed! error [' + resData.responseData.msg + ']');
+        }
+        if (resStatus !== 200 && resStatus !== 201) {
+          console.log('Error!');
+          // console.log('res:', res);
+          throw new Error('Could not authenticate you! error [' + resData.responseData.msg + ']');
+        }
+        return resData; //.json();
       })
       .then(resData => {
         console.log(resData);
