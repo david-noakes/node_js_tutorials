@@ -1,4 +1,14 @@
-# Version 1.0.0 (2019-11-07)
+# Version 1.25.397 (2019-11-07)
+
+## Chores
+* code changes for assignment
+ ([1cdd84](https://github.com/jackyef/changelog-generator/commit/1cdd84b761b6adfa2a5a4bebd18fe143538b765a))
+* code changes for assignment
+ ([009542](https://github.com/jackyef/changelog-generator/commit/00954256272c64e2b08f574a8954a5912b3eec2c))
+* most of section 25 working with REST APIs except for the assignment
+ ([117447](https://github.com/jackyef/changelog-generator/commit/117447cfd1bfe65223c835f32aa725aa865cc7ee))
+
+# Version 1.25.0 (2019-11-07)
 
 ## Chores
 * update with Max's solution
