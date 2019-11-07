@@ -62,9 +62,9 @@ router.post('/login',
   ],
   authController.login);
 
-  router.get('/status', isAuth, authController.getUserStatus);
+router.get('/status', isAuth, authController.getUserStatus);
 
-  router.put(
+router.put(
     '/status',
     isAuth,
     [
@@ -76,4 +76,4 @@ router.post('/login',
     authController.updateUserStatus
   );
   
-  module.exports = router;
+module.exports = router;
