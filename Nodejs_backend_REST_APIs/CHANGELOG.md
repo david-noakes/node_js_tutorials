@@ -1,3 +1,9 @@
+# Version 1.26.400 (2019-11-07)
+
+## Sections
+* changes for section 26: using Async and Await
+ 20191107  ([9dfa6f](https://github.com/jackyef/changelog-generator/commit/9dfa6f177f0045b90a572724feea74bd2d0d2f59))
+
 # Version 1.25.397 (2019-11-07)
 
 ## Chores
