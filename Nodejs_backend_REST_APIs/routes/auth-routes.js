@@ -22,7 +22,7 @@ router.put(
       .normalizeEmail(),
     body('password')
       .trim()
-      .isLength({ min: 5 }),
+      .isLength({ min: 4 }),
     body('name')
       .trim()
       .not()
