@@ -1,4 +1,5 @@
 import React, { Component, Fragment } from 'react';
+import openSocket from 'socket.io-client';
 
 import Post from '../../components/Feed/Post/Post';
 import Button from '../../components/Button/Button';
@@ -30,6 +31,7 @@ class Feed extends Component {
       }
     })
       .then(res => {
+        console.log('res:data:', res);
         if (res.status !== 200) {
           throw new Error('Failed to fetch user status.');
         }
@@ -41,7 +43,53 @@ class Feed extends Component {
       .catch(this.catchError);
 
     this.loadPosts();
+    const socket = openSocket('http://localhost:8080');
+    socket.on('posts', data => {
+      if (data.action === 'create') {
+        this.addPost(data.post);
+      } else if (data.action === 'update') {
+        this.updatePost(data.post);
+      } else if (data.action === 'delete') {
+        this.loadPosts();
+      }
+    });
   }
+
+
+  addPost = post => {
+    this.setState(prevState => {
+      const userId = localStorage.getItem('userId');
+      const updatedPosts = [...prevState.posts];
+      // console.log('post to add:', post, 'userId:', userId);
+      // console.log('1:', userId === post.creator._id, '2:', userId.toString() === post.creator._id.toString());
+      if (userId === post.creator._id) {
+        console.log('my post:', post._id);
+        return {
+          posts: updatedPosts
+        };
+      } else {
+        console.log('post not found, adding:', post._id);
+        updatedPosts.unshift(post);
+        return {
+          posts: updatedPosts,
+          totalPosts: prevState.totalPosts + 1
+        };
+      }
+    });
+  };
+
+  updatePost = post => {
+    this.setState(prevState => {
+      const updatedPosts = [...prevState.posts];
+      const updatedPostIndex = updatedPosts.findIndex(p => p._id === post._id);
+      if (updatedPostIndex > -1) {
+        updatedPosts[updatedPostIndex] = post;
+      }
+      return {
+        posts: updatedPosts
+      };
+    });
+  };
 
   loadPosts = direction => {
     if (direction) {
@@ -213,10 +261,11 @@ class Feed extends Component {
       })
       .then(resData => {
         console.log(resData);
-        this.setState(prevState => {
-          const updatedPosts = prevState.posts.filter(p => p._id !== postId);
-          return { posts: updatedPosts, postsLoading: false };
-        });
+        this.loadPosts();
+        // this.setState(prevState => {
+        //   const updatedPosts = prevState.posts.filter(p => p._id !== postId);
+        //   return { posts: updatedPosts, postsLoading: false };
+        // });
       })
       .catch(err => {
         console.log(err);
