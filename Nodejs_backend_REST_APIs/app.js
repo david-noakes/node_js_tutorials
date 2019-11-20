@@ -1,13 +1,14 @@
-const express = require('express');
-const bodyParser = require('body-parser');
+global.appRequire = name => require(`${__dirname}/${name}`);
 
 const authRoutes = require('./routes/auth-routes');
+const bodyParser = require('body-parser');
+const express = require('express');
 const feedRoutes = require('./routes/feed-routes');
 const globalVars = require('./utils/global-vars');
 const mongoose = require('mongoose');
 const path = require('path');
 const pathUtil = require('./utils/path-util');
-const useMulter = require("./middleware/multer-util");
+const useMulter = require('./middleware/multer-util');
 
 
 const app = express();
@@ -77,7 +78,11 @@ mongoose
     {useNewUrlParser: true}
   )
   .then(result => {
-    app.listen(8080);
+    const server = app.listen(8080);
     console.log('restAPI listening on 8080');
+    const io = require('./socket').init(server);
+    io.on('connection', socket => {
+      console.log('client connected to socket');
+    });
   })
   .catch(err => console.log(err));
