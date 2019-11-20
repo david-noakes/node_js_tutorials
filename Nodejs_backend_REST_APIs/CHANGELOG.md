@@ -1,3 +1,11 @@
+# Version 1.27.409 (2019-11-20)
+
+## Sections
+* section 27 websockets
+ 20191120  ([0fdac8](https://github.com/jackyef/changelog-generator/commit/0fdac87e4a3619ad97c9c9c6583b961a1c91c999))
+* section 27 websockets
+ 20191120  ([add919](https://github.com/jackyef/changelog-generator/commit/add9194bcd2ce13e6284f196e6c1bfcdf94f9465))
+
 # Version 1.26.400 (2019-11-07)
 
 ## Sections
