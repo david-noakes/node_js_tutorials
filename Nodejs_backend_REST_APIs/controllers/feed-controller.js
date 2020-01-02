@@ -70,20 +70,23 @@ exports.createPost = async (req, res, next) => {
 
   try {
     const result = await post.save();
-    io.getIO().emit('posts', {
-      action: 'create',
-      post: { ...post._doc, creator: { _id: req.userId, name: req.email } }
-    });
+    // comment out for testing
+    // io.getIO().emit('posts', {
+    //   action: 'create',
+    //   post: { ...post._doc, creator: { _id: req.userId, name: req.email } }
+    // });
     res.status(201).json({
       message: 'Post created successfully!',
       post: result
     });
+    return result;
   } catch (err) {
     console.log(err);
     if (!err.statusCode) {
       err.statusCode = 500;
     }
     next(err);
+    return err;
   }
 };
 
