@@ -1,5 +1,47 @@
 const child = require('child_process');
 const fs = require('fs');
+// const Tag = require('./tag-model');
+const Tag = class Tags {
+  constructor (
+    aList,
+    tag,
+    description
+  ) {
+    this.aList = aList;
+    this.tag = tag;
+    this.description = description;
+  }
+
+}
+
+const pkgRepo = require('./package.json').repository;
+console.log('pkgRepo', pkgRepo);
+let gitRepo = '';
+try { 
+  console.log('gitRepo:', child.execSync('git config --get remote.origin.url').toString());
+  const z = child.execSync('git config --get remote.origin.url').toString().split('@');
+  gitRepo = z[z.length - 1];
+  // console.log('gRepo after split:', gitRepo);
+  gitRepo = gitRepo.replace(':', '/');
+}
+catch (error) {
+  console.log(error);
+  gitRepo = '';
+}
+
+if (gitRepo.trim().length == 0) {
+  if (pkgRepo && pkgRepo.url) {
+    const z = pkgRepo.url.split('+');
+    gitRepo = z[z.length - 1];
+  } else {
+    gitRepo = 'https://github.com/david-noakes/test-repo';
+  }
+}
+
+if (!gitRepo.startsWith('http')) {
+  gitRepo = 'https://' + gitRepo;
+}
+console.log('repo:', gitRepo);
 
 const latestTag = child.execSync('git describe --long').toString('utf-8').split('-')[0];
 
@@ -22,151 +64,70 @@ const commitsArray = output
 //console.log({ commitsArray });
 console.log(commitsArray.length);
 
-const currentChangelog = fs.readFileSync("./CHANGELOG.md", "utf-8");
-// const currentVersion = Number(require("./package.json").version);
-const currentVersion = require("./package.json").version;
+const currentChangelog = fs.readFileSync('./CHANGELOG.md', 'utf-8');
+// const currentVersion = Number(require('./package.json').version);
+const currentVersion = require('./package.json').version;
 // const newVersion = currentVersion + 1;
 let newChangelog = `# Version ${currentVersion} (${
-  new Date().toISOString().split("T")[0]
+  new Date().toISOString().split('T')[0]
 })\n\n`;
 
-// console.log({ commitsArray });
 
-// // update package.json
-// fs.writeFileSync("./package.json", JSON.stringify({ version: String(newVersion) }, null, 2));
-
-// // create a new commit
-// child.execSync('git add .');
-// child.execSync(`git commit -m "chore: Bump to version ${newVersion}"`);
-
-// // tag the commit
-// child.execSync(`git tag -a -m "Tag for version ${newVersion}" version${newVersion}`);
+const tags = [];
 
 const chores = [];
+const enhances = [];
 const features = [];
 const fixes = [];
+const lessons = [];
 const perfs = [];
 const refactors = [];
 const sections = [];
 
+// this is the processing order for the change log
+tags.push(new Tag(features, 'feature: ', `## Features\n`));
+tags.push(new Tag(enhances, 'enhancement: ', `## Enhancements\n`));
+tags.push(new Tag(sections, 'section: ', `## Sections\n`));
+tags.push(new Tag(lessons, 'lesson: ', `## Lessons\n`));
+tags.push(new Tag(fixes, 'fix: ', `## Fixes\n`));
+tags.push(new Tag(perfs, 'performance: ', `## Performance Tweaks\n`));
+tags.push(new Tag(refactors, 'refactor: ', `## Refactorings\n`));
+tags.push(new Tag(chores, 'chore: ', `## Chores\n`));
+
+function processCommitString(commit, arr, str) {
+  if (commit.message.startsWith(str)) {
+    arr.push(
+      `* ${commit.message.replace(str, '')} ([${commit.sha.substring(
+        0,
+        6
+      )}](${gitRepo}/commit/${
+        commit.sha
+      }))\n`
+    );
+  }
+}
+
+function writeList(arr, str) {
+  if (arr.length) {
+    console.log(arr.length)
+    newChangelog += str;
+    arr.forEach(feature => {
+      newChangelog += feature;
+    });
+    newChangelog += '\n';
+  }
+}
+
 commitsArray.forEach(commit => {
-  if (commit.message.startsWith("feature: ")) {
-    features.push(
-      `* ${commit.message.replace("feature: ", "")} ([${commit.sha.substring(
-        0,
-        6
-      )}](https://github.com/jackyef/changelog-generator/commit/${
-        commit.sha
-      }))\n`
-    );
-  }
-  if (commit.message.startsWith("chore: ")) {
-    chores.push(
-      `* ${commit.message.replace("chore: ", "")} ([${commit.sha.substring(
-        0,
-        6
-      )}](https://github.com/jackyef/changelog-generator/commit/${
-        commit.sha
-      }))\n`
-    );
-  }
-  if (commit.message.startsWith("section: ")) {
-    sections.push(
-      `* ${commit.message.replace("section: ", "") + " " + 
-           commit.isodate.substring(0, 8) + " "} ([${commit.sha.substring(
-        0,
-        6
-      )}](https://github.com/jackyef/changelog-generator/commit/${
-        commit.sha
-      }))\n`
-    );
-  }
-  if (commit.message.startsWith("fix: ")) {
-    fixes.push(
-      `* ${commit.message.replace("fix: ", "")} ([${commit.sha.substring(
-        0,
-        6
-      )}](https://github.com/jackyef/changelog-generator/commit/${
-        commit.sha
-      }))\n`
-    );
-  }
-  if (commit.message.startsWith("performance: ")) {
-    perfs.push(
-      `* ${commit.message.replace("performance: ", "")} ([${commit.sha.substring(
-        0,
-        6
-      )}](https://github.com/jackyef/changelog-generator/commit/${
-        commit.sha
-      }))\n`
-    );
-  }  
-  if (commit.message.startsWith("refactor: ")) {
-    refactors.push(
-      `* ${commit.message.replace("refactor: ", "")} ([${commit.sha.substring(
-        0,
-        6
-      )}](https://github.com/jackyef/changelog-generator/commit/${
-        commit.sha
-      }))\n`
-    );
-  }
+  tags.forEach(tag => {
+    processCommitString(commit, tag.aList, tag.tag);  
+  });
 });
 
-if (features.length) {
-  console.log(features.length)
-  newChangelog += `## Features\n`;
-  features.forEach(feature => {
-    newChangelog += feature;
-  });
-  newChangelog += '\n';
-}
-
-if (fixes.length) {
-  console.log(fixes.length)
-  newChangelog += `## Fixes\n`;
-  fixes.forEach(feature => {
-    newChangelog += feature;
-  });
-  newChangelog += '\n';
-}
-
-if (perfs.length) {
-  console.log(perfs.length)
-  newChangelog += `## Performance Enhancements\n`;
-  perfs.forEach(feature => {
-    newChangelog += feature;
-  });
-  newChangelog += '\n';
-}
-
-if (refactors.length) {
-  console.log(refactors.length)
-  newChangelog += `## Refactorings\n`;
-  refactors.forEach(feature => {
-    newChangelog += feature;
-  });
-  newChangelog += '\n';
-}
-
-if (chores.length) {
-  console.log(chores.length)
-  newChangelog += `## Chores\n`;
-  chores.forEach(chore => {
-    newChangelog += chore;
-  });
-  newChangelog += '\n';
-}
-
-if (sections.length) {
-  console.log(sections.length)
-  newChangelog += `## Sections\n`;
-  sections.forEach(feature => {
-    newChangelog += feature;
-  });
-  newChangelog += '\n';
-}
+tags.forEach(tag => {
+  writeList(tag.aList, tag.description);
+});
 
 // prepend the newChangelog to the current one
-fs.writeFileSync("./CHANGELOG.md", `${newChangelog}${currentChangelog}`);
-// console.log("CHANGELOG.md:", `${newChangelog}${currentChangelog}`);
+fs.writeFileSync('./CHANGELOG.md', `${newChangelog}${currentChangelog}`);
+// console.log('CHANGELOG.md:', `${newChangelog}${currentChangelog}`);
