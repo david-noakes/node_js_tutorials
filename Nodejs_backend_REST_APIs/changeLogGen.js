@@ -18,29 +18,37 @@ const pkgRepo = require('./package.json').repository;
 console.log('pkgRepo', pkgRepo);
 let gitRepo = '';
 try { 
-  console.log('gitRepo:', child.execSync('git config --get remote.origin.url').toString());
-  const z = child.execSync('git config --get remote.origin.url').toString().split('@');
+  const zs = child.execSync('git config --get remote.origin.url').toString();
+  console.log('gitRepo:', zs);
+  const z = zs.split('@');  // git@github.com
   gitRepo = z[z.length - 1];
   // console.log('gRepo after split:', gitRepo);
-  gitRepo = gitRepo.replace(':', '/');
+  if (z.length > 1) {
+    // ssh format
+    gitRepo = gitRepo.replace(':', '/');
+  }
 }
 catch (error) {
-  console.log(error);
+  console.log(error.message);
   gitRepo = '';
 }
 
 if (gitRepo.trim().length == 0) {
   if (pkgRepo && pkgRepo.url) {
-    const z = pkgRepo.url.split('+');
+    const z = pkgRepo.url.split('+'); //  url: 'git+https://github.com/
     gitRepo = z[z.length - 1];
   } else {
     gitRepo = 'https://github.com/david-noakes/test-repo';
   }
 }
 
+gitRepo = gitRepo.replace('\n', '');
+gitRepo = gitRepo.replace('.git', ''); // the commit URL doesn't use this
+
 if (!gitRepo.startsWith('http')) {
   gitRepo = 'https://' + gitRepo;
 }
+
 console.log('repo:', gitRepo);
 
 const latestTag = child.execSync('git describe --long').toString('utf-8').split('-')[0];
@@ -130,4 +138,4 @@ tags.forEach(tag => {
 
 // prepend the newChangelog to the current one
 fs.writeFileSync('./CHANGELOG.md', `${newChangelog}${currentChangelog}`);
-// console.log('CHANGELOG.md:', `${newChangelog}${currentChangelog}`);
+
