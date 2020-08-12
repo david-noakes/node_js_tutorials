@@ -1,0 +1,12 @@
+{
+  "name": "demo-beatbox",
+  "version": "0.0.0-0001",
+  "description": "demo beatbox",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [ "beatbox" ],
+  "author": "David Noakes",
+  "license": "ISC"
+}
