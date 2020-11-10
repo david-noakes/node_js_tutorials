@@ -14,6 +14,48 @@ const Tag = class Tags {
 
 }
 
+const tags = [];
+
+const chores = [];
+const enhances = [];
+const features = [];
+const fixes = [];
+const lessons = [];
+const perfs = [];
+const refactors = [];
+const sections = [];
+
+// this is the processing order for the change log
+tags.push(new Tag(features, 'feature: ', `## Features\n`));
+tags.push(new Tag(enhances, 'enhancement: ', `## Enhancements\n`));
+tags.push(new Tag(sections, 'section: ', `## Sections\n`));
+tags.push(new Tag(lessons, 'lesson: ', `## Lessons\n`));
+tags.push(new Tag(fixes, 'fix: ', `## Fixes\n`));
+tags.push(new Tag(perfs, 'performance: ', `## Performance Tweaks\n`));
+tags.push(new Tag(refactors, 'refactor: ', `## Refactorings\n`));
+tags.push(new Tag(chores, 'chore: ', `## Chores\n`));
+
+function dashHelp() {
+  console.log('Help text - use the following tags in your commit:');
+  tags.forEach(tag => {
+    console.log(tag.tag);  
+  });
+}
+
+const myArgs = process.argv.slice(2);
+console.log('myArgs:', myArgs);
+// console.log('isHelp:', isHelp());
+if (isHelp()) {
+  console.log('------   help   ------');
+  dashHelp();
+  process.exit(0);
+}
+
+function isHelp() {
+  return myArgs.find(x => x === '--help') || myArgs.find(x => x === '-h') || myArgs.find(x => x === '/h');
+}
+
+
 const pkgRepo = require('./package.json').repository;
 console.log('pkgRepo', pkgRepo);
 let gitRepo = '';
@@ -80,27 +122,6 @@ let newChangelog = `# Version ${currentVersion} (${
   new Date().toISOString().split('T')[0]
 })\n\n`;
 
-
-const tags = [];
-
-const chores = [];
-const enhances = [];
-const features = [];
-const fixes = [];
-const lessons = [];
-const perfs = [];
-const refactors = [];
-const sections = [];
-
-// this is the processing order for the change log
-tags.push(new Tag(features, 'feature: ', `## Features\n`));
-tags.push(new Tag(enhances, 'enhancement: ', `## Enhancements\n`));
-tags.push(new Tag(sections, 'section: ', `## Sections\n`));
-tags.push(new Tag(lessons, 'lesson: ', `## Lessons\n`));
-tags.push(new Tag(fixes, 'fix: ', `## Fixes\n`));
-tags.push(new Tag(perfs, 'performance: ', `## Performance Tweaks\n`));
-tags.push(new Tag(refactors, 'refactor: ', `## Refactorings\n`));
-tags.push(new Tag(chores, 'chore: ', `## Chores\n`));
 
 function processCommitString(commit, arr, str) {
   if (commit.message.startsWith(str)) {
