@@ -9,7 +9,7 @@
   "author": "David",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.194.0",
+    "aws-sdk": "^2.814.0",
     "body-parser": "*",
     "connect": "*",
     "formidable": "*",
