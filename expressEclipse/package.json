@@ -14,7 +14,7 @@
 	    "morgan": "~1.9.0",
 	    "serve-favicon": "~2.4.5",
 	    "logger": "*",
-	    "express-handlebars": "^1.1.0"	,
+	    "express-handlebars": "^5.3.1"	,
 	    "method-override": "*"
 	    	
   }
